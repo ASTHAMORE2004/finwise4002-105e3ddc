@@ -5,6 +5,9 @@ import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import LearnSection from "@/components/landing/LearnSection";
 import CTASection from "@/components/landing/CTASection";
 import Footer from "@/components/landing/Footer";
+import PrivacyPopup from "@/components/PrivacyPopup";
+import WebsiteTour from "@/components/WebsiteTour";
+import KuberChatbot from "@/components/KuberChatbot";
 
 const Index = () => {
   return (
@@ -16,6 +19,11 @@ const Index = () => {
       <LearnSection />
       <CTASection />
       <Footer />
+      
+      {/* Interactive Components */}
+      <PrivacyPopup />
+      <WebsiteTour />
+      <KuberChatbot />
     </main>
   );
 };
