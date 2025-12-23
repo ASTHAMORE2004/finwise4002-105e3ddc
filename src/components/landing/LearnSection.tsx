@@ -11,7 +11,7 @@ const modules = [
 
 const LearnSection = () => {
   return (
-    <section id="learn" className="py-24 lg:py-32 relative overflow-hidden">
+    <section id="learn" data-tour="learn" className="py-24 lg:py-32 relative overflow-hidden">
       {/* Background */}
       <div className="absolute inset-0 bg-gradient-glow opacity-30" />
 
