@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      course_payments: {
+        Row: {
+          amount: number
+          course_id: string
+          created_at: string
+          currency: string | null
+          id: string
+          order_id: string | null
+          payment_id: string | null
+          payment_status: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          course_id: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          order_id?: string | null
+          payment_id?: string | null
+          payment_status?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          course_id?: string
+          created_at?: string
+          currency?: string | null
+          id?: string
+          order_id?: string | null
+          payment_id?: string | null
+          payment_status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "course_payments_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       courses: {
         Row: {
           category: string | null
@@ -23,10 +67,13 @@ export type Database = {
           duration_hours: number | null
           id: string
           is_featured: boolean | null
+          is_paid: boolean | null
           lessons_count: number | null
+          price: number | null
           thumbnail_url: string | null
           title: string
           updated_at: string
+          youtube_playlist_url: string | null
         }
         Insert: {
           category?: string | null
@@ -36,10 +83,13 @@ export type Database = {
           duration_hours?: number | null
           id?: string
           is_featured?: boolean | null
+          is_paid?: boolean | null
           lessons_count?: number | null
+          price?: number | null
           thumbnail_url?: string | null
           title: string
           updated_at?: string
+          youtube_playlist_url?: string | null
         }
         Update: {
           category?: string | null
@@ -49,12 +99,65 @@ export type Database = {
           duration_hours?: number | null
           id?: string
           is_featured?: boolean | null
+          is_paid?: boolean | null
           lessons_count?: number | null
+          price?: number | null
           thumbnail_url?: string | null
           title?: string
           updated_at?: string
+          youtube_playlist_url?: string | null
         }
         Relationships: []
+      }
+      investor_meetings: {
+        Row: {
+          created_at: string
+          host_user_id: string
+          id: string
+          investor_user_id: string | null
+          meeting_type: string | null
+          notes: string | null
+          room_name: string | null
+          room_url: string | null
+          scheduled_at: string | null
+          startup_id: string | null
+          status: string | null
+        }
+        Insert: {
+          created_at?: string
+          host_user_id: string
+          id?: string
+          investor_user_id?: string | null
+          meeting_type?: string | null
+          notes?: string | null
+          room_name?: string | null
+          room_url?: string | null
+          scheduled_at?: string | null
+          startup_id?: string | null
+          status?: string | null
+        }
+        Update: {
+          created_at?: string
+          host_user_id?: string
+          id?: string
+          investor_user_id?: string | null
+          meeting_type?: string | null
+          notes?: string | null
+          room_name?: string | null
+          room_url?: string | null
+          scheduled_at?: string | null
+          startup_id?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "investor_meetings_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "startup_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       ipo_applications: {
         Row: {
@@ -169,6 +272,42 @@ export type Database = {
         }
         Relationships: []
       }
+      kyc_documents: {
+        Row: {
+          created_at: string
+          document_type: string
+          document_url: string
+          id: string
+          rejection_reason: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          document_type: string
+          document_url: string
+          id?: string
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          document_type?: string
+          document_url?: string
+          id?: string
+          rejection_reason?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       lessons: {
         Row: {
           course_id: string
@@ -180,6 +319,7 @@ export type Database = {
           order_index: number | null
           title: string
           video_url: string | null
+          youtube_url: string | null
         }
         Insert: {
           course_id: string
@@ -191,6 +331,7 @@ export type Database = {
           order_index?: number | null
           title: string
           video_url?: string | null
+          youtube_url?: string | null
         }
         Update: {
           course_id?: string
@@ -202,6 +343,7 @@ export type Database = {
           order_index?: number | null
           title?: string
           video_url?: string | null
+          youtube_url?: string | null
         }
         Relationships: [
           {
@@ -212,6 +354,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      otp_verifications: {
+        Row: {
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          otp_code: string
+          purpose: string
+          user_id: string | null
+          verified: boolean | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          otp_code: string
+          purpose: string
+          user_id?: string | null
+          verified?: boolean | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          otp_code?: string
+          purpose?: string
+          user_id?: string | null
+          verified?: boolean | null
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -243,6 +418,113 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      startup_investments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          payment_id: string | null
+          payment_status: string | null
+          startup_id: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          payment_id?: string | null
+          payment_status?: string | null
+          startup_id: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          payment_id?: string | null
+          payment_status?: string | null
+          startup_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "startup_investments_startup_id_fkey"
+            columns: ["startup_id"]
+            isOneToOne: false
+            referencedRelation: "startup_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      startup_registrations: {
+        Row: {
+          created_at: string
+          description: string | null
+          equity_offered: number | null
+          founded_year: number | null
+          funding_goal: number
+          id: string
+          logo_url: string | null
+          min_investment: number | null
+          pitch_deck_url: string | null
+          pitch_video_url: string | null
+          raised_amount: number | null
+          sector: string | null
+          startup_name: string
+          status: string
+          symbol: string
+          team_size: number | null
+          updated_at: string
+          user_id: string
+          valuation: number | null
+          website_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          equity_offered?: number | null
+          founded_year?: number | null
+          funding_goal: number
+          id?: string
+          logo_url?: string | null
+          min_investment?: number | null
+          pitch_deck_url?: string | null
+          pitch_video_url?: string | null
+          raised_amount?: number | null
+          sector?: string | null
+          startup_name: string
+          status?: string
+          symbol: string
+          team_size?: number | null
+          updated_at?: string
+          user_id: string
+          valuation?: number | null
+          website_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          equity_offered?: number | null
+          founded_year?: number | null
+          funding_goal?: number
+          id?: string
+          logo_url?: string | null
+          min_investment?: number | null
+          pitch_deck_url?: string | null
+          pitch_video_url?: string | null
+          raised_amount?: number | null
+          sector?: string | null
+          startup_name?: string
+          status?: string
+          symbol?: string
+          team_size?: number | null
+          updated_at?: string
+          user_id?: string
+          valuation?: number | null
+          website_url?: string | null
         }
         Relationships: []
       }
