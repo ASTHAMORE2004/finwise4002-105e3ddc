@@ -15,36 +15,42 @@ const features = [
     title: "Round-Up Investing",
     description: "Every purchase rounds up to the nearest ₹10. The spare change automatically invests in your portfolio. Coffee for ₹48? Invest ₹2 instantly.",
     accent: false,
+    path: "/auth",
   },
   {
     icon: PiggyBank,
     title: "Save While You Spend",
     description: "Set spending thresholds and auto-save the difference. Partner cashbacks convert to investments. Your money works while you live.",
     accent: true,
+    path: "/auth",
   },
   {
     icon: BookOpen,
     title: "Financial Literacy",
     description: "Bite-sized lessons on budgeting, credit scores, SIPs & taxes. Earn badges, complete quizzes, and get AI-powered personalized tips.",
     accent: false,
+    path: "/courses",
   },
   {
     icon: BarChart3,
     title: "Smart Expense Tracker",
     description: "Categorize spending automatically. Set goals like 'Save ₹500 for a trip in 2 months'. Beautiful dashboards show your save vs spend ratio.",
     accent: false,
+    path: "/auth",
   },
   {
     icon: Users,
     title: "Community Challenges",
     description: "Join peer challenges like 'Save ₹1000 in 30 days'. Climb leaderboards, share tips, and celebrate wins with fellow students.",
     accent: true,
+    path: "/auth",
   },
   {
     icon: Shield,
     title: "Secure & Regulated",
     description: "Bank-grade encryption protects your data. Invest in SEBI-regulated mutual funds, digital gold, and government bonds.",
     accent: false,
+    path: "/auth",
   },
 ];
 
@@ -95,7 +101,7 @@ const FeaturesSection = () => {
         {/* Features Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
           {features.map((feature, index) => (
-            <FeatureCard key={feature.title} {...feature} index={index} />
+            <FeatureCard key={feature.title} {...feature} index={index} path={feature.path} />
           ))}
         </div>
       </div>
