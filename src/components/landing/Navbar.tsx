@@ -2,9 +2,11 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Wallet, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <motion.nav
@@ -16,37 +18,40 @@ const Navbar = () => {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center shadow-glow">
               <Wallet className="w-5 h-5 text-primary-foreground" />
             </div>
             <span className="font-display text-xl font-bold text-foreground">
               Fin<span className="text-gradient-primary">Wise</span>
             </span>
-          </div>
+          </Link>
 
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-8">
+            <Link to="/ipo" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+              IPO
+            </Link>
+            <Link to="/courses" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+              Courses
+            </Link>
+            <Link to="/video-call" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+              Video Calls
+            </Link>
             <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
               Features
             </a>
             <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
               How It Works
             </a>
-            <a href="#learn" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
-              Learn
-            </a>
-            <a href="#community" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
-              Community
-            </a>
           </div>
 
           {/* Desktop CTA */}
           <div className="hidden md:flex items-center gap-4">
-            <Button variant="ghost" className="text-muted-foreground">
+            <Button variant="ghost" className="text-muted-foreground" onClick={() => navigate('/auth')}>
               Log In
             </Button>
-            <Button variant="gradient">
+            <Button variant="gradient" onClick={() => navigate('/auth')}>
               Get Started
             </Button>
           </div>
@@ -69,23 +74,26 @@ const Navbar = () => {
             className="md:hidden py-4 border-t border-border/50"
           >
             <div className="flex flex-col gap-4">
+              <Link to="/ipo" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
+                IPO Listings
+              </Link>
+              <Link to="/courses" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
+                Courses
+              </Link>
+              <Link to="/video-call" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
+                Video Calls
+              </Link>
               <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors py-2">
                 Features
               </a>
               <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors py-2">
                 How It Works
               </a>
-              <a href="#learn" className="text-muted-foreground hover:text-foreground transition-colors py-2">
-                Learn
-              </a>
-              <a href="#community" className="text-muted-foreground hover:text-foreground transition-colors py-2">
-                Community
-              </a>
               <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
-                <Button variant="ghost" className="justify-start">
+                <Button variant="ghost" className="justify-start" onClick={() => { navigate('/auth'); setIsOpen(false); }}>
                   Log In
                 </Button>
-                <Button variant="gradient">
+                <Button variant="gradient" onClick={() => { navigate('/auth'); setIsOpen(false); }}>
                   Get Started
                 </Button>
               </div>
