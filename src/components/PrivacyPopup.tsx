@@ -1,104 +1,129 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Cookie, Shield, X } from "lucide-react";
+import { Shield, Lock, CheckCircle, FileText } from "lucide-react";
 import Cookies from "js-cookie";
 
 const PrivacyPopup = () => {
   const [isVisible, setIsVisible] = useState(false);
+  const [isAgreed, setIsAgreed] = useState(false);
 
   useEffect(() => {
     const consent = Cookies.get("finwise_privacy_consent");
     if (!consent) {
-      const timer = setTimeout(() => setIsVisible(true), 1500);
-      return () => clearTimeout(timer);
+      setIsVisible(true);
+    } else {
+      setIsAgreed(true);
     }
   }, []);
 
   const handleAccept = () => {
     Cookies.set("finwise_privacy_consent", "accepted", { expires: 365 });
     setIsVisible(false);
+    setIsAgreed(true);
   };
 
-  const handleDecline = () => {
-    Cookies.set("finwise_privacy_consent", "declined", { expires: 30 });
-    setIsVisible(false);
-  };
+  const securityFeatures = [
+    { icon: Lock, text: "256-bit SSL Encryption" },
+    { icon: Shield, text: "Bank-grade Security" },
+    { icon: FileText, text: "SEBI Compliant" },
+  ];
 
-  return (
-    <AnimatePresence>
-      {isVisible && (
+  // Block access until user agrees
+  if (!isAgreed && isVisible) {
+    return (
+      <AnimatePresence>
         <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
-          transition={{ duration: 0.4, ease: "easeOut" }}
-          className="fixed bottom-4 left-4 right-4 md:left-auto md:right-6 md:max-w-md z-50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/95 backdrop-blur-xl"
         >
-          <div className="glass-card rounded-2xl p-6 shadow-elevated border border-border/50">
-            {/* Close button */}
-            <button
-              onClick={handleDecline}
-              className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-accent/20 to-primary/20 flex items-center justify-center">
-                <Cookie className="w-6 h-6 text-accent" />
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="w-full max-w-lg"
+          >
+            <div className="glass-card rounded-3xl p-8 shadow-elevated border border-border/50 text-center">
+              {/* Security Icon */}
+              <div className="w-20 h-20 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
+                <Shield className="w-10 h-10 text-primary" />
               </div>
-              <div>
-                <h3 className="font-display font-semibold text-foreground text-lg">
-                  Your Privacy Matters
-                </h3>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Shield className="w-3 h-3" /> Bank-grade security
-                </p>
+
+              {/* Header */}
+              <h2 className="font-display text-2xl sm:text-3xl font-bold text-foreground mb-3">
+                Your Security is Our Priority
+              </h2>
+              <p className="text-muted-foreground mb-6">
+                Welcome to FinWise! Before you explore our platform, please review and accept our security and privacy policies.
+              </p>
+
+              {/* Security Features */}
+              <div className="flex flex-wrap justify-center gap-4 mb-8">
+                {securityFeatures.map((feature) => (
+                  <div
+                    key={feature.text}
+                    className="flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 border border-border/50"
+                  >
+                    <feature.icon className="w-4 h-4 text-primary" />
+                    <span className="text-sm text-foreground">{feature.text}</span>
+                  </div>
+                ))}
               </div>
-            </div>
 
-            {/* Content */}
-            <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-              We use cookies to enhance your experience, analyze traffic, and personalize your 
-              investment recommendations. Your financial data is encrypted and never sold.
-            </p>
+              {/* Content Box */}
+              <div className="bg-secondary/30 rounded-xl p-4 mb-6 text-left">
+                <ul className="space-y-3">
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-muted-foreground">
+                      Your financial data is encrypted and never shared with third parties
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-muted-foreground">
+                      We use cookies to enhance your experience and personalize recommendations
+                    </span>
+                  </li>
+                  <li className="flex items-start gap-3">
+                    <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm text-muted-foreground">
+                      All transactions are protected with multi-layer security protocols
+                    </span>
+                  </li>
+                </ul>
+              </div>
 
-            {/* Actions */}
-            <div className="flex flex-col sm:flex-row gap-3">
+              {/* CTA Button */}
               <Button
                 variant="gradient"
                 onClick={handleAccept}
-                className="flex-1"
+                className="w-full py-6 text-lg font-semibold"
               >
-                Accept All
+                I Agree & Continue
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleDecline}
-                className="flex-1"
-              >
-                Essential Only
-              </Button>
-            </div>
 
-            {/* Policy link */}
-            <p className="text-xs text-muted-foreground mt-4 text-center">
-              By continuing, you agree to our{" "}
-              <a href="#" className="text-primary hover:underline">
-                Privacy Policy
-              </a>{" "}
-              and{" "}
-              <a href="#" className="text-primary hover:underline">
-                Terms of Service
-              </a>
-            </p>
-          </div>
+              {/* Policy Links */}
+              <p className="text-xs text-muted-foreground mt-4">
+                By clicking "I Agree", you accept our{" "}
+                <a href="#" className="text-primary hover:underline">
+                  Privacy Policy
+                </a>{" "}
+                and{" "}
+                <a href="#" className="text-primary hover:underline">
+                  Terms of Service
+                </a>
+              </p>
+            </div>
+          </motion.div>
         </motion.div>
-      )}
-    </AnimatePresence>
-  );
+      </AnimatePresence>
+    );
+  }
+
+  return null;
 };
 
 export default PrivacyPopup;

@@ -13,6 +13,10 @@ import IPODetail from "./pages/IPODetail";
 import Startups from "./pages/Startups";
 import StartupRegistration from "./pages/StartupRegistration";
 import VideoCall from "./pages/VideoCall";
+import SaveWhileSpend from "./pages/SaveWhileSpend";
+import ExpenseTracker from "./pages/ExpenseTracker";
+import Community from "./pages/Community";
+import FinancialLiteracy from "./pages/FinancialLiteracy";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +38,10 @@ const App = () => (
             <Route path="/startups" element={<Startups />} />
             <Route path="/startups/register" element={<StartupRegistration />} />
             <Route path="/video-call" element={<VideoCall />} />
+            <Route path="/save-while-spend" element={<SaveWhileSpend />} />
+            <Route path="/expense-tracker" element={<ExpenseTracker />} />
+            <Route path="/community" element={<Community />} />
+            <Route path="/financial-literacy" element={<FinancialLiteracy />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
