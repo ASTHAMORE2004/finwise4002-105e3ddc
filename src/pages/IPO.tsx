@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { TrendingUp, Calendar, IndianRupee, Users, ChevronRight, Filter } from 'lucide-react';
+import { TrendingUp, Calendar, IndianRupee, Users, ChevronRight, BarChart3, PieChart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import Navbar from '@/components/landing/Navbar';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPie, Pie, Cell, LineChart, Line, Legend } from 'recharts';
 
 interface IPO {
   id: string;
@@ -32,6 +34,8 @@ const statusColors: Record<string, string> = {
   open: 'bg-primary/20 text-primary',
   closed: 'bg-muted text-muted-foreground'
 };
+
+const CHART_COLORS = ['hsl(var(--primary))', 'hsl(var(--accent))', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 const IPO = () => {
   const [ipos, setIpos] = useState<IPO[]>([]);
@@ -59,6 +63,34 @@ const IPO = () => {
     if (activeTab === 'all') return true;
     return ipo.status === activeTab;
   });
+
+  // Chart data preparation
+  const sectorData = ipos.reduce((acc, ipo) => {
+    const sector = ipo.sector || 'Other';
+    const existing = acc.find(item => item.name === sector);
+    if (existing) {
+      existing.value += 1;
+      existing.issueSize += (ipo.issue_size || 0) / 10000000; // Convert to Cr
+    } else {
+      acc.push({ name: sector, value: 1, issueSize: (ipo.issue_size || 0) / 10000000 });
+    }
+    return acc;
+  }, [] as { name: string; value: number; issueSize: number }[]);
+
+  const subscriptionData = ipos
+    .filter(ipo => ipo.subscription_rate > 0)
+    .map(ipo => ({
+      name: ipo.symbol,
+      subscription: ipo.subscription_rate,
+      priceHigh: ipo.price_band_high,
+    }))
+    .slice(0, 6);
+
+  const issueSizeData = ipos.map(ipo => ({
+    name: ipo.symbol,
+    issueSize: (ipo.issue_size || 0) / 10000000,
+    lotSize: ipo.lot_size,
+  })).slice(0, 6);
 
   return (
     <div className="min-h-screen bg-background">
@@ -99,6 +131,109 @@ const IPO = () => {
             </motion.div>
           ))}
         </div>
+
+        {/* Charts Section */}
+        {ipos.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12"
+          >
+            {/* Sector Distribution Pie Chart */}
+            <Card className="glass-card border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <PieChart className="w-5 h-5 text-primary" />
+                  Sector Distribution
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={200}>
+                  <RechartsPie>
+                    <Pie
+                      data={sectorData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={70}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {sectorData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                    />
+                    <Legend />
+                  </RechartsPie>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Subscription Rate Bar Chart */}
+            <Card className="glass-card border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  Subscription Rates
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={subscriptionData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value: number) => [`${value}x`, 'Subscription']}
+                    />
+                    <Bar dataKey="subscription" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            {/* Issue Size Comparison */}
+            <Card className="glass-card border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <TrendingUp className="w-5 h-5 text-primary" />
+                  Issue Size (₹ Cr)
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={200}>
+                  <LineChart data={issueSizeData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value: number) => [`₹${value.toFixed(0)} Cr`, 'Issue Size']}
+                    />
+                    <Line type="monotone" dataKey="issueSize" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ fill: 'hsl(var(--accent))' }} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
@@ -165,6 +300,11 @@ const IPO = () => {
                       <span className="text-muted-foreground">
                         Lot Size: {ipo.lot_size}
                       </span>
+                      {ipo.subscription_rate > 0 && (
+                        <span className="text-emerald-500 font-medium">
+                          {ipo.subscription_rate}x subscribed
+                        </span>
+                      )}
                     </div>
                   </div>
                   
