@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { TrendingUp, Calendar, IndianRupee, Users, ChevronRight, BarChart3, PieChart } from 'lucide-react';
+import { TrendingUp, Calendar, IndianRupee, Users, ChevronRight, BarChart3, PieChart, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -105,9 +105,13 @@ const IPO = () => {
           <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">
             <span className="text-gradient-primary">IPO</span> Listings
           </h1>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-6">
             Discover and apply for the latest Initial Public Offerings in India
           </p>
+          <Button onClick={() => navigate('/ipo/register')} className="btn-primary-gradient">
+            <Plus className="w-4 h-4 mr-2" />
+            Register New IPO
+          </Button>
         </motion.div>
 
         {/* Stats */}
