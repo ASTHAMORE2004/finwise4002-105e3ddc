@@ -18,6 +18,7 @@ import SaveWhileSpend from "./pages/SaveWhileSpend";
 import ExpenseTracker from "./pages/ExpenseTracker";
 import Community from "./pages/Community";
 import FinancialLiteracy from "./pages/FinancialLiteracy";
+import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/expense-tracker" element={<ExpenseTracker />} />
             <Route path="/community" element={<Community />} />
             <Route path="/financial-literacy" element={<FinancialLiteracy />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
