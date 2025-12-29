@@ -222,6 +222,9 @@ export type Database = {
           price_band_high: number
           price_band_low: number
           prospectus_url: string | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           sector: string | null
           status: string | null
           subscription_rate: number | null
@@ -243,6 +246,9 @@ export type Database = {
           price_band_high: number
           price_band_low: number
           prospectus_url?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           sector?: string | null
           status?: string | null
           subscription_rate?: number | null
@@ -264,6 +270,9 @@ export type Database = {
           price_band_high?: number
           price_band_low?: number
           prospectus_url?: string | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           sector?: string | null
           status?: string | null
           subscription_rate?: number | null
@@ -472,6 +481,9 @@ export type Database = {
           pitch_deck_url: string | null
           pitch_video_url: string | null
           raised_amount: number | null
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
           sector: string | null
           startup_name: string
           status: string
@@ -494,6 +506,9 @@ export type Database = {
           pitch_deck_url?: string | null
           pitch_video_url?: string | null
           raised_amount?: number | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           sector?: string | null
           startup_name: string
           status?: string
@@ -516,6 +531,9 @@ export type Database = {
           pitch_deck_url?: string | null
           pitch_video_url?: string | null
           raised_amount?: number | null
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
           sector?: string | null
           startup_name?: string
           status?: string
@@ -576,6 +594,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
       video_sessions: {
         Row: {
           created_at: string
@@ -623,10 +662,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "moderator" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -753,6 +798,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "moderator", "user"],
+    },
   },
 } as const
