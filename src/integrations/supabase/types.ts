@@ -364,6 +364,51 @@ export type Database = {
           },
         ]
       }
+      market_trends: {
+        Row: {
+          avg_return_percent: number | null
+          created_at: string
+          id: string
+          risk_score: number | null
+          sector: string
+          top_performer_id: string | null
+          top_performer_name: string | null
+          top_performer_return: number | null
+          total_investment: number | null
+          total_ipos: number | null
+          total_startups: number | null
+          trend_date: string
+        }
+        Insert: {
+          avg_return_percent?: number | null
+          created_at?: string
+          id?: string
+          risk_score?: number | null
+          sector: string
+          top_performer_id?: string | null
+          top_performer_name?: string | null
+          top_performer_return?: number | null
+          total_investment?: number | null
+          total_ipos?: number | null
+          total_startups?: number | null
+          trend_date?: string
+        }
+        Update: {
+          avg_return_percent?: number | null
+          created_at?: string
+          id?: string
+          risk_score?: number | null
+          sector?: string
+          top_performer_id?: string | null
+          top_performer_name?: string | null
+          top_performer_return?: number | null
+          total_investment?: number | null
+          total_ipos?: number | null
+          total_startups?: number | null
+          trend_date?: string
+        }
+        Relationships: []
+      }
       otp_verifications: {
         Row: {
           created_at: string
@@ -397,6 +442,51 @@ export type Database = {
         }
         Relationships: []
       }
+      price_alerts: {
+        Row: {
+          alert_type: string
+          created_at: string
+          id: string
+          is_read: boolean | null
+          is_triggered: boolean | null
+          item_id: string
+          item_name: string
+          item_type: string
+          target_price: number
+          triggered_at: string | null
+          triggered_price: number | null
+          user_id: string
+        }
+        Insert: {
+          alert_type: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          is_triggered?: boolean | null
+          item_id: string
+          item_name: string
+          item_type: string
+          target_price: number
+          triggered_at?: string | null
+          triggered_price?: number | null
+          user_id: string
+        }
+        Update: {
+          alert_type?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          is_triggered?: boolean | null
+          item_id?: string
+          item_name?: string
+          item_type?: string
+          target_price?: number
+          triggered_at?: string | null
+          triggered_price?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -426,6 +516,36 @@ export type Database = {
           id?: string
           phone?: string | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      saved_calculations: {
+        Row: {
+          calculation_type: string
+          created_at: string
+          id: string
+          inputs: Json
+          name: string
+          result: Json
+          user_id: string
+        }
+        Insert: {
+          calculation_type: string
+          created_at?: string
+          id?: string
+          inputs: Json
+          name: string
+          result: Json
+          user_id: string
+        }
+        Update: {
+          calculation_type?: string
+          created_at?: string
+          id?: string
+          inputs?: Json
+          name?: string
+          result?: Json
           user_id?: string
         }
         Relationships: []
@@ -594,6 +714,72 @@ export type Database = {
           },
         ]
       }
+      user_portfolio: {
+        Row: {
+          buy_price: number
+          created_at: string
+          current_price: number | null
+          current_value: number | null
+          id: string
+          invested_amount: number
+          investment_id: string | null
+          investment_name: string
+          investment_type: string
+          notes: string | null
+          purchase_date: string
+          quantity: number
+          sector: string | null
+          sold_date: string | null
+          sold_price: number | null
+          status: string | null
+          symbol: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          buy_price: number
+          created_at?: string
+          current_price?: number | null
+          current_value?: number | null
+          id?: string
+          invested_amount: number
+          investment_id?: string | null
+          investment_name: string
+          investment_type: string
+          notes?: string | null
+          purchase_date?: string
+          quantity?: number
+          sector?: string | null
+          sold_date?: string | null
+          sold_price?: number | null
+          status?: string | null
+          symbol?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          buy_price?: number
+          created_at?: string
+          current_price?: number | null
+          current_value?: number | null
+          id?: string
+          invested_amount?: number
+          investment_id?: string | null
+          investment_name?: string
+          investment_type?: string
+          notes?: string | null
+          purchase_date?: string
+          quantity?: number
+          sector?: string | null
+          sold_date?: string | null
+          sold_price?: number | null
+          status?: string | null
+          symbol?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -611,6 +797,42 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_watchlist: {
+        Row: {
+          alert_enabled: boolean | null
+          created_at: string
+          id: string
+          item_id: string
+          item_type: string
+          notes: string | null
+          price_alert_high: number | null
+          price_alert_low: number | null
+          user_id: string
+        }
+        Insert: {
+          alert_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          item_id: string
+          item_type: string
+          notes?: string | null
+          price_alert_high?: number | null
+          price_alert_low?: number | null
+          user_id: string
+        }
+        Update: {
+          alert_enabled?: boolean | null
+          created_at?: string
+          id?: string
+          item_id?: string
+          item_type?: string
+          notes?: string | null
+          price_alert_high?: number | null
+          price_alert_low?: number | null
           user_id?: string
         }
         Relationships: []
