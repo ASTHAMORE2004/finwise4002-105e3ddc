@@ -28,22 +28,25 @@ const Navbar = () => {
           </Link>
 
           {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-6">
+            <Link to="/portfolio" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+              Portfolio
+            </Link>
+            <Link to="/analytics" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+              Analytics
+            </Link>
+            <Link to="/watchlist" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+              Watchlist
+            </Link>
+            <Link to="/calculator" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+              Calculator
+            </Link>
             <Link to="/ipo" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
               IPO
             </Link>
-            <Link to="/courses" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
-              Courses
+            <Link to="/startups" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+              Startups
             </Link>
-            <Link to="/video-call" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
-              Video Calls
-            </Link>
-            <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
-              Features
-            </a>
-            <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
-              How It Works
-            </a>
           </div>
 
           {/* Desktop CTA */}
