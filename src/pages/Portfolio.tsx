@@ -12,6 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useStockPrices } from "@/hooks/useStockPrices";
+import { exportPortfolioToPDF } from "@/utils/pdfExport";
 import {
   Wallet,
   TrendingUp,
@@ -23,7 +25,9 @@ import {
   ArrowDownRight,
   DollarSign,
   Target,
-  Activity
+  Activity,
+  Download,
+  RefreshCw
 } from "lucide-react";
 import {
   PieChart as RechartsPie,
@@ -74,6 +78,13 @@ const Portfolio = () => {
     sector: ''
   });
 
+  // Get stock symbols for real-time prices
+  const stockSymbols = portfolio
+    .filter(item => item.symbol && item.investment_type === 'stock')
+    .map(item => item.symbol as string);
+  
+  const { prices, loading: pricesLoading, refetch: refetchPrices, lastUpdated } = useStockPrices(stockSymbols);
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/auth');
@@ -83,6 +94,24 @@ const Portfolio = () => {
       fetchPortfolio();
     }
   }, [user, authLoading, navigate]);
+
+  // Update portfolio with real-time prices
+  useEffect(() => {
+    if (Object.keys(prices).length > 0 && portfolio.length > 0) {
+      const updatedPortfolio = portfolio.map(item => {
+        if (item.symbol && prices[item.symbol]?.regularMarketPrice) {
+          const newPrice = prices[item.symbol].regularMarketPrice;
+          return {
+            ...item,
+            current_price: newPrice,
+            current_value: item.quantity * (newPrice || item.buy_price)
+          };
+        }
+        return item;
+      });
+      setPortfolio(updatedPortfolio);
+    }
+  }, [prices]);
 
   const fetchPortfolio = async () => {
     try {
@@ -213,13 +242,32 @@ const Portfolio = () => {
             </h1>
             <p className="text-muted-foreground">Track your investments and performance</p>
           </div>
-          <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="gradient" className="mt-4 md:mt-0">
-                <Plus className="w-4 h-4 mr-2" />
-                Add Investment
-              </Button>
-            </DialogTrigger>
+          <div className="flex gap-2 mt-4 md:mt-0">
+            <Button
+              variant="outline"
+              onClick={() => refetchPrices()}
+              disabled={pricesLoading}
+              className="gap-2"
+            >
+              <RefreshCw className={`w-4 h-4 ${pricesLoading ? 'animate-spin' : ''}`} />
+              {lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString()}` : 'Refresh'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => exportPortfolioToPDF(portfolio, { totalInvested, totalCurrentValue, totalReturns, returnsPercent })}
+              disabled={portfolio.length === 0}
+              className="gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export PDF
+            </Button>
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="gradient">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Investment
+                </Button>
+              </DialogTrigger>
             <DialogContent className="bg-card border-border">
               <DialogHeader>
                 <DialogTitle>Add New Investment</DialogTitle>
@@ -297,6 +345,7 @@ const Portfolio = () => {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </motion.div>
 
         {/* Stats Cards */}

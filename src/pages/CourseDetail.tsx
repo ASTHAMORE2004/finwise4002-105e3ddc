@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Clock, BookOpen, Play, Lock, Check, ArrowLeft, User } from 'lucide-react';
+import { Clock, BookOpen, Play, Lock, Check, ArrowLeft, User, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import Navbar from '@/components/landing/Navbar';
+import YouTubePlayer from '@/components/YouTubePlayer';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -18,6 +19,9 @@ interface Course {
   lessons_count: number;
   difficulty: string;
   category: string;
+  is_paid: boolean;
+  price: number;
+  youtube_playlist_url: string | null;
 }
 
 interface Lesson {
@@ -27,6 +31,7 @@ interface Lesson {
   duration_minutes: number;
   order_index: number;
   is_free: boolean;
+  youtube_url: string | null;
 }
 
 const CourseDetail = () => {
@@ -40,6 +45,9 @@ const CourseDetail = () => {
   const [loading, setLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [completedLessons, setCompletedLessons] = useState<string[]>([]);
+  const [activeLesson, setActiveLesson] = useState<Lesson | null>(null);
+  const [hasPurchased, setHasPurchased] = useState(false);
+  const [purchasing, setPurchasing] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -54,24 +62,86 @@ const CourseDetail = () => {
     ]);
 
     if (courseRes.data) setCourse(courseRes.data);
-    if (lessonsRes.data) setLessons(lessonsRes.data);
+    if (lessonsRes.data) {
+      setLessons(lessonsRes.data);
+      // Set first lesson as active if it has a YouTube URL
+      const firstWithVideo = lessonsRes.data.find(l => l.youtube_url);
+      if (firstWithVideo) setActiveLesson(firstWithVideo);
+    }
     
     if (user) {
-      const { data: progressData } = await supabase
-        .from('user_course_progress')
-        .select('progress_percent')
-        .eq('user_id', user.id)
-        .eq('course_id', id)
-        .single();
+      const [progressData, paymentData] = await Promise.all([
+        supabase
+          .from('user_course_progress')
+          .select('progress_percent')
+          .eq('user_id', user.id)
+          .eq('course_id', id)
+          .single(),
+        supabase
+          .from('course_payments')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('course_id', id)
+          .eq('payment_status', 'completed')
+          .single()
+      ]);
       
-      if (progressData) setProgress(progressData.progress_percent);
+      if (progressData.data) setProgress(progressData.data.progress_percent || 0);
+      if (paymentData.data) setHasPurchased(true);
     }
     
     setLoading(false);
   };
 
+  const handlePurchaseCourse = async () => {
+    if (!user) {
+      navigate('/auth');
+      return;
+    }
+
+    if (!course?.is_paid || course.price === 0) {
+      setHasPurchased(true);
+      toast({
+        title: 'Course unlocked!',
+        description: 'You now have access to all lessons'
+      });
+      return;
+    }
+
+    setPurchasing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          courseId: course.id,
+          courseName: course.title,
+          amount: course.price,
+          userId: user.id,
+          successUrl: `${window.location.origin}/courses/${course.id}?success=true`,
+          cancelUrl: `${window.location.origin}/courses/${course.id}?canceled=true`
+        }
+      });
+
+      if (error) throw error;
+      if (data?.url) {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error('Purchase error:', error);
+      toast({
+        title: 'Purchase failed',
+        description: 'Unable to process payment. Please try again.',
+        variant: 'destructive'
+      });
+    } finally {
+      setPurchasing(false);
+    }
+  };
+
   const handleStartLesson = async (lesson: Lesson) => {
-    if (!lesson.is_free && !user) {
+    // Check if lesson is accessible
+    const canAccess = lesson.is_free || hasPurchased || !course?.is_paid;
+    
+    if (!canAccess && !user) {
       toast({
         title: 'Sign in required',
         description: 'Please sign in to access this lesson',
@@ -81,14 +151,29 @@ const CourseDetail = () => {
       return;
     }
 
+    if (!canAccess) {
+      toast({
+        title: 'Purchase required',
+        description: 'Please purchase the course to access this lesson',
+        variant: 'destructive'
+      });
+      return;
+    }
+
+    // Set active lesson for video playback
+    setActiveLesson(lesson);
+
     toast({
-      title: 'Starting lesson',
-      description: `Opening: ${lesson.title}`
+      title: 'Lesson started',
+      description: `Now playing: ${lesson.title}`
     });
 
-    // Simulate lesson completion
+    // Track lesson completion
     if (user && course) {
-      setCompletedLessons(prev => [...prev, lesson.id]);
+      setCompletedLessons(prev => {
+        if (prev.includes(lesson.id)) return prev;
+        return [...prev, lesson.id];
+      });
       const newProgress = Math.round(((completedLessons.length + 1) / lessons.length) * 100);
       setProgress(newProgress);
       
@@ -181,6 +266,27 @@ const CourseDetail = () => {
                 </span>
               </div>
 
+            {/* Video Player Section */}
+            {activeLesson?.youtube_url && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="mb-6"
+              >
+                <div className="glass-card rounded-xl overflow-hidden">
+                  <YouTubePlayer
+                    videoUrl={activeLesson.youtube_url}
+                    title={activeLesson.title}
+                    className="aspect-video"
+                  />
+                  <div className="p-4">
+                    <h3 className="font-semibold text-lg">{activeLesson.title}</h3>
+                    <p className="text-muted-foreground text-sm mt-1">{activeLesson.description}</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
               {user && progress > 0 && (
                 <div className="glass-card rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
@@ -195,8 +301,10 @@ const CourseDetail = () => {
               <div className="space-y-4">
                 <h2 className="text-xl font-display font-semibold">Course Content</h2>
                 
-                {lessons.map((lesson, index) => {
+              {lessons.map((lesson, index) => {
                   const isCompleted = completedLessons.includes(lesson.id);
+                  const canAccess = lesson.is_free || hasPurchased || !course?.is_paid;
+                  const isActive = activeLesson?.id === lesson.id;
                   
                   return (
                     <motion.div
@@ -207,16 +315,16 @@ const CourseDetail = () => {
                       onClick={() => handleStartLesson(lesson)}
                       className={`glass-card rounded-xl p-4 cursor-pointer group hover:border-primary/50 transition-all ${
                         isCompleted ? 'border-primary/30 bg-primary/5' : ''
-                      }`}
+                      } ${isActive ? 'border-primary ring-2 ring-primary/20' : ''} ${!canAccess ? 'opacity-60' : ''}`}
                     >
                       <div className="flex items-center gap-4">
                         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                           isCompleted ? 'bg-primary text-primary-foreground' :
-                          lesson.is_free ? 'bg-secondary' : 'bg-muted'
+                          canAccess ? 'bg-secondary' : 'bg-muted'
                         }`}>
                           {isCompleted ? (
                             <Check className="h-5 w-5" />
-                          ) : lesson.is_free ? (
+                          ) : canAccess ? (
                             <Play className="h-5 w-5" />
                           ) : (
                             <Lock className="h-4 w-4" />
@@ -250,9 +358,28 @@ const CourseDetail = () => {
             {/* Sidebar */}
             <div className="lg:col-span-1">
               <div className="glass-card rounded-xl p-6 sticky top-24">
-                <div className="aspect-video bg-gradient-card rounded-lg mb-6 flex items-center justify-center">
-                  <Play className="h-16 w-16 text-primary/50" />
+                {/* Course Preview Video */}
+                <div className="aspect-video bg-gradient-card rounded-lg mb-6 overflow-hidden">
+                  {course.youtube_playlist_url ? (
+                    <YouTubePlayer
+                      videoUrl={course.youtube_playlist_url}
+                      title={`${course.title} - Preview`}
+                      className="h-full"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Play className="h-16 w-16 text-primary/50" />
+                    </div>
+                  )}
                 </div>
+
+                {/* Price and Purchase */}
+                {course.is_paid && course.price && course.price > 0 && !hasPurchased && (
+                  <div className="mb-4 text-center">
+                    <p className="text-3xl font-bold text-foreground">₹{course.price.toLocaleString()}</p>
+                    <p className="text-sm text-muted-foreground">One-time payment</p>
+                  </div>
+                )}
                 
                 {!user ? (
                   <Button 
@@ -261,12 +388,25 @@ const CourseDetail = () => {
                   >
                     Sign in to Enroll
                   </Button>
-                ) : (
+                ) : hasPurchased || !course.is_paid ? (
                   <Button 
                     className="w-full btn-primary-gradient h-12"
                     onClick={() => lessons[0] && handleStartLesson(lessons[0])}
                   >
                     {progress > 0 ? 'Continue Learning' : 'Start Course'}
+                  </Button>
+                ) : (
+                  <Button 
+                    className="w-full btn-primary-gradient h-12 gap-2"
+                    onClick={handlePurchaseCourse}
+                    disabled={purchasing}
+                  >
+                    {purchasing ? (
+                      <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                    ) : (
+                      <CreditCard className="w-5 h-5" />
+                    )}
+                    {purchasing ? 'Processing...' : 'Buy Now'}
                   </Button>
                 )}
                 
