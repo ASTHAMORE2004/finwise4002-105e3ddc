@@ -59,7 +59,7 @@ const CourseDetail = () => {
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const success = urlParams.get('success');
-    
+
     if (success === 'true' && user && course && !hasPurchased) {
       handlePaymentSuccess();
       // Clean up URL
@@ -69,18 +69,35 @@ const CourseDetail = () => {
 
   const handlePaymentSuccess = async () => {
     if (!user || !course) return;
-    
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const orderId = urlParams.get('orderId');
+
     try {
-      // Update payment status to completed
-      await supabase
-        .from('course_payments')
-        .update({ payment_status: 'completed' })
-        .eq('user_id', user.id)
-        .eq('course_id', course.id)
-        .eq('payment_status', 'pending');
-      
+      // Mark the pending payment as completed (fallback to upsert if not found)
+      if (orderId) {
+        await supabase
+          .from('course_payments')
+          .update({ payment_status: 'completed' })
+          .eq('user_id', user.id)
+          .eq('course_id', course.id)
+          .eq('order_id', orderId)
+          .eq('payment_status', 'pending');
+      } else {
+        await supabase
+          .from('course_payments')
+          .upsert({
+            user_id: user.id,
+            course_id: course.id,
+            amount: course.price,
+            currency: 'INR',
+            payment_status: 'completed',
+            order_id: `ORD-${Date.now()}`,
+          });
+      }
+
       setHasPurchased(true);
-      
+
       // Send confirmation email
       await supabase.functions.invoke('send-verification-email', {
         body: {
@@ -90,12 +107,12 @@ const CourseDetail = () => {
           data: {
             courseName: course.title,
             amount: course.price,
-            orderId: `ORD-${Date.now()}`,
+            orderId: orderId || `ORD-${Date.now()}`,
             courseUrl: `${window.location.origin}/courses/${course.id}`
           }
         }
       });
-      
+
       toast({
         title: 'Payment successful!',
         description: 'You now have full access to the course. Check your email for confirmation.'
@@ -126,14 +143,14 @@ const CourseDetail = () => {
           .select('progress_percent')
           .eq('user_id', user.id)
           .eq('course_id', id)
-          .single(),
+          .maybeSingle(),
         supabase
           .from('course_payments')
           .select('id')
           .eq('user_id', user.id)
           .eq('course_id', id)
           .eq('payment_status', 'completed')
-          .single()
+          .maybeSingle()
       ]);
       
       if (progressData.data) setProgress(progressData.data.progress_percent || 0);
@@ -160,14 +177,28 @@ const CourseDetail = () => {
 
     setPurchasing(true);
     try {
+      // Create a pending payment record before redirecting to checkout
+      const orderId = `ORD-${Date.now()}`;
+      const { error: paymentInsertError } = await supabase
+        .from('course_payments')
+        .insert({
+          user_id: user.id,
+          course_id: course.id,
+          amount: course.price,
+          currency: 'INR',
+          payment_status: 'pending',
+          order_id: orderId,
+        });
+      if (paymentInsertError) throw paymentInsertError;
+
       const { data, error } = await supabase.functions.invoke('create-checkout', {
         body: {
           courseId: course.id,
           courseName: course.title,
           amount: course.price,
           userId: user.id,
-          successUrl: `${window.location.origin}/courses/${course.id}?success=true`,
-          cancelUrl: `${window.location.origin}/courses/${course.id}?canceled=true`
+          successUrl: `${window.location.origin}/courses/${course.id}?success=true&orderId=${encodeURIComponent(orderId)}`,
+          cancelUrl: `${window.location.origin}/courses/${course.id}?canceled=true&orderId=${encodeURIComponent(orderId)}`
         }
       });
 
