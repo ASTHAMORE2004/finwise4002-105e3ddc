@@ -162,6 +162,28 @@ const getEmailContent = (type: string, params: EmailRequest) => {
           </div>
         `
       };
+    case 'payment_confirmation':
+      return {
+        subject: `Payment Successful - ${params.data?.courseName || 'Course Purchase'}`,
+        html: `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h1 style="color: #10b981;">Payment Successful! 🎉</h1>
+            <p>Dear ${name || 'Learner'},</p>
+            <p>Thank you for your purchase! Your payment has been processed successfully.</p>
+            <div style="background: #f4f4f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+              <h3 style="margin: 0 0 10px 0; color: #333;">Order Details</h3>
+              <p style="margin: 5px 0;"><strong>Course:</strong> ${params.data?.courseName || 'N/A'}</p>
+              <p style="margin: 5px 0;"><strong>Amount:</strong> ₹${params.data?.amount?.toLocaleString() || '0'}</p>
+              <p style="margin: 5px 0;"><strong>Order ID:</strong> ${params.data?.orderId || 'N/A'}</p>
+              <p style="margin: 5px 0;"><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN', { dateStyle: 'long' })}</p>
+            </div>
+            <p>You now have full access to all course content. Start learning now!</p>
+            <a href="${params.data?.courseUrl || '#'}" style="display: inline-block; background: #6366f1; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; margin-top: 10px;">Start Learning</a>
+            <hr style="margin: 30px 0; border: none; border-top: 1px solid #eee;" />
+            <p style="color: #666; font-size: 12px;">This is an automated email from FinWise. Please keep this for your records.</p>
+          </div>
+        `
+      };
     default:
       return { subject: 'Update from FinWise', html: '<p>You have a new update from FinWise.</p>' };
   }

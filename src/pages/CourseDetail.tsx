@@ -55,6 +55,56 @@ const CourseDetail = () => {
     }
   }, [id]);
 
+  // Handle payment success callback
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const success = urlParams.get('success');
+    
+    if (success === 'true' && user && course && !hasPurchased) {
+      handlePaymentSuccess();
+      // Clean up URL
+      window.history.replaceState({}, '', `/courses/${id}`);
+    }
+  }, [user, course, hasPurchased]);
+
+  const handlePaymentSuccess = async () => {
+    if (!user || !course) return;
+    
+    try {
+      // Update payment status to completed
+      await supabase
+        .from('course_payments')
+        .update({ payment_status: 'completed' })
+        .eq('user_id', user.id)
+        .eq('course_id', course.id)
+        .eq('payment_status', 'pending');
+      
+      setHasPurchased(true);
+      
+      // Send confirmation email
+      await supabase.functions.invoke('send-verification-email', {
+        body: {
+          type: 'payment_confirmation',
+          email: user.email,
+          name: user.user_metadata?.full_name || user.email?.split('@')[0],
+          data: {
+            courseName: course.title,
+            amount: course.price,
+            orderId: `ORD-${Date.now()}`,
+            courseUrl: `${window.location.origin}/courses/${course.id}`
+          }
+        }
+      });
+      
+      toast({
+        title: 'Payment successful!',
+        description: 'You now have full access to the course. Check your email for confirmation.'
+      });
+    } catch (error) {
+      console.error('Error processing payment success:', error);
+    }
+  };
+
   const fetchCourseData = async () => {
     const [courseRes, lessonsRes] = await Promise.all([
       supabase.from('courses').select('*').eq('id', id).single(),
