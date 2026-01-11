@@ -21,10 +21,31 @@ serve(async (req) => {
       apiVersion: "2023-10-16",
     });
 
-    const { priceId, courseId, courseName, amount, userId, successUrl, cancelUrl } = await req.json();
+    const { 
+      priceId, 
+      courseId, 
+      courseName, 
+      amount, 
+      userId, 
+      successUrl, 
+      cancelUrl,
+      // IPO specific fields
+      type = 'course', // 'course' or 'ipo'
+      ipoId,
+      ipoName,
+      lots,
+      shares,
+      bidPrice
+    } = await req.json();
 
-    // Create or get customer
-    let customerId: string | undefined;
+    // Determine product details based on type
+    const isIPO = type === 'ipo';
+    const productName = isIPO 
+      ? `${ipoName} IPO Application` 
+      : (courseName || "Course Purchase");
+    const productDescription = isIPO 
+      ? `IPO Application: ${lots} lot(s), ${shares} shares @ ₹${bidPrice}` 
+      : `Access to ${courseName}`;
     
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
@@ -34,8 +55,8 @@ serve(async (req) => {
           price_data: {
             currency: "inr",
             product_data: {
-              name: courseName || "Course Purchase",
-              description: `Access to ${courseName}`,
+              name: productName,
+              description: productDescription,
             },
             unit_amount: Math.round(amount * 100), // Convert to paise
           },
@@ -43,12 +64,11 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: successUrl || `${req.headers.get("origin")}/courses?success=true`,
-      cancel_url: cancelUrl || `${req.headers.get("origin")}/courses?canceled=true`,
-      metadata: {
-        courseId,
-        userId,
-      },
+      success_url: successUrl || `${req.headers.get("origin")}/${isIPO ? 'ipo' : 'courses'}?success=true`,
+      cancel_url: cancelUrl || `${req.headers.get("origin")}/${isIPO ? 'ipo' : 'courses'}?canceled=true`,
+      metadata: isIPO 
+        ? { type: 'ipo', ipoId, userId, lots: String(lots), shares: String(shares), bidPrice: String(bidPrice) }
+        : { type: 'course', courseId, userId },
     });
 
     return new Response(
