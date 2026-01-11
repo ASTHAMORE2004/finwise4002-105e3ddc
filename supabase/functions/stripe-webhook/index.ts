@@ -66,59 +66,119 @@ serve(async (req) => {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log("Checkout session completed:", session.id);
 
-        const { courseId, userId } = session.metadata || {};
+        const metadata = session.metadata || {};
+        const paymentType = metadata.type || 'course';
 
-        if (!courseId || !userId) {
-          console.error("Missing metadata in checkout session:", session.metadata);
-          break;
-        }
+        if (paymentType === 'ipo') {
+          // Handle IPO payment
+          const { ipoId, userId, lots, shares, bidPrice } = metadata;
 
-        // Update the payment status to completed
-        const { data: existingPayment, error: fetchError } = await supabase
-          .from("course_payments")
-          .select("id")
-          .eq("user_id", userId)
-          .eq("course_id", courseId)
-          .eq("payment_status", "pending")
-          .maybeSingle();
+          if (!ipoId || !userId) {
+            console.error("Missing IPO metadata in checkout session:", metadata);
+            break;
+          }
 
-        if (fetchError) {
-          console.error("Error fetching payment:", fetchError);
-        }
+          // Update existing pending IPO application or create new one
+          const { data: existingApplication, error: fetchError } = await supabase
+            .from("ipo_applications")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("ipo_id", ipoId)
+            .eq("status", "pending_payment")
+            .maybeSingle();
 
-        if (existingPayment) {
-          // Update existing pending payment
-          const { error: updateError } = await supabase
-            .from("course_payments")
-            .update({
-              payment_status: "completed",
-              payment_id: session.payment_intent as string,
-            })
-            .eq("id", existingPayment.id);
+          if (fetchError) {
+            console.error("Error fetching IPO application:", fetchError);
+          }
 
-          if (updateError) {
-            console.error("Error updating payment:", updateError);
+          if (existingApplication) {
+            const { error: updateError } = await supabase
+              .from("ipo_applications")
+              .update({
+                status: "confirmed",
+                payment_id: session.payment_intent as string,
+              })
+              .eq("id", existingApplication.id);
+
+            if (updateError) {
+              console.error("Error updating IPO application:", updateError);
+            } else {
+              console.log(`IPO application confirmed for user ${userId}, IPO ${ipoId}`);
+            }
           } else {
-            console.log(`Payment updated for user ${userId}, course ${courseId}`);
+            // Create new application if none exists
+            const { error: insertError } = await supabase
+              .from("ipo_applications")
+              .insert({
+                user_id: userId,
+                ipo_id: ipoId,
+                lots_applied: parseInt(lots) || 1,
+                bid_price: parseFloat(bidPrice) || 0,
+                amount: (session.amount_total || 0) / 100,
+                status: "confirmed",
+                upi_id: "stripe_payment",
+              });
+
+            if (insertError) {
+              console.error("Error inserting IPO application:", insertError);
+            } else {
+              console.log(`New IPO application created for user ${userId}, IPO ${ipoId}`);
+            }
           }
         } else {
-          // Insert new payment record if none exists
-          const { error: insertError } = await supabase
-            .from("course_payments")
-            .insert({
-              user_id: userId,
-              course_id: courseId,
-              amount: (session.amount_total || 0) / 100,
-              currency: session.currency?.toUpperCase() || "INR",
-              payment_status: "completed",
-              payment_id: session.payment_intent as string,
-              order_id: `ORD-${Date.now()}`,
-            });
+          // Handle course payment
+          const { courseId, userId } = metadata;
 
-          if (insertError) {
-            console.error("Error inserting payment:", insertError);
+          if (!courseId || !userId) {
+            console.error("Missing course metadata in checkout session:", metadata);
+            break;
+          }
+
+          // Update the payment status to completed
+          const { data: existingPayment, error: fetchError } = await supabase
+            .from("course_payments")
+            .select("id")
+            .eq("user_id", userId)
+            .eq("course_id", courseId)
+            .eq("payment_status", "pending")
+            .maybeSingle();
+
+          if (fetchError) {
+            console.error("Error fetching payment:", fetchError);
+          }
+
+          if (existingPayment) {
+            const { error: updateError } = await supabase
+              .from("course_payments")
+              .update({
+                payment_status: "completed",
+                payment_id: session.payment_intent as string,
+              })
+              .eq("id", existingPayment.id);
+
+            if (updateError) {
+              console.error("Error updating payment:", updateError);
+            } else {
+              console.log(`Payment updated for user ${userId}, course ${courseId}`);
+            }
           } else {
-            console.log(`New payment created for user ${userId}, course ${courseId}`);
+            const { error: insertError } = await supabase
+              .from("course_payments")
+              .insert({
+                user_id: userId,
+                course_id: courseId,
+                amount: (session.amount_total || 0) / 100,
+                currency: session.currency?.toUpperCase() || "INR",
+                payment_status: "completed",
+                payment_id: session.payment_intent as string,
+                order_id: `ORD-${Date.now()}`,
+              });
+
+            if (insertError) {
+              console.error("Error inserting payment:", insertError);
+            } else {
+              console.log(`New payment created for user ${userId}, course ${courseId}`);
+            }
           }
         }
         break;
@@ -128,19 +188,36 @@ serve(async (req) => {
         const session = event.data.object as Stripe.Checkout.Session;
         console.log("Checkout session expired:", session.id);
 
-        const { courseId, userId } = session.metadata || {};
+        const metadata = session.metadata || {};
+        const paymentType = metadata.type || 'course';
 
-        if (courseId && userId) {
-          // Mark pending payment as expired/failed
-          const { error } = await supabase
-            .from("course_payments")
-            .update({ payment_status: "expired" })
-            .eq("user_id", userId)
-            .eq("course_id", courseId)
-            .eq("payment_status", "pending");
+        if (paymentType === 'ipo') {
+          const { ipoId, userId } = metadata;
+          if (ipoId && userId) {
+            const { error } = await supabase
+              .from("ipo_applications")
+              .update({ status: "payment_expired" })
+              .eq("user_id", userId)
+              .eq("ipo_id", ipoId)
+              .eq("status", "pending_payment");
 
-          if (error) {
-            console.error("Error updating expired payment:", error);
+            if (error) {
+              console.error("Error updating expired IPO application:", error);
+            }
+          }
+        } else {
+          const { courseId, userId } = metadata;
+          if (courseId && userId) {
+            const { error } = await supabase
+              .from("course_payments")
+              .update({ payment_status: "expired" })
+              .eq("user_id", userId)
+              .eq("course_id", courseId)
+              .eq("payment_status", "pending");
+
+            if (error) {
+              console.error("Error updating expired payment:", error);
+            }
           }
         }
         break;

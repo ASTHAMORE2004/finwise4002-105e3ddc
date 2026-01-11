@@ -41,9 +41,22 @@ const IPODetail = () => {
   const [applying, setApplying] = useState(false);
   const [lots, setLots] = useState(1);
   const [bidPrice, setBidPrice] = useState(0);
-  const [upiId, setUpiId] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [hasApplied, setHasApplied] = useState(false);
+
+  // Handle payment success/cancel from URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('success') === 'true') {
+      toast({ title: 'Payment successful!', description: 'Your IPO application has been confirmed.' });
+      setHasApplied(true);
+      // Clean up URL
+      window.history.replaceState({}, '', `/ipo/${id}`);
+    } else if (params.get('canceled') === 'true') {
+      toast({ title: 'Payment canceled', description: 'Your IPO application was not completed.', variant: 'destructive' });
+      window.history.replaceState({}, '', `/ipo/${id}`);
+    }
+  }, [id, toast]);
 
   useEffect(() => {
     if (id) fetchIPOData();
@@ -84,37 +97,68 @@ const IPODetail = () => {
 
     if (!ipo) return;
 
-    if (!upiId || !upiId.includes('@')) {
-      toast({ title: 'Invalid UPI ID', description: 'Please enter a valid UPI ID', variant: 'destructive' });
-      return;
-    }
-
     setApplying(true);
     
     const amount = lots * ipo.lot_size * bidPrice;
-    
-    const { error } = await supabase
-      .from('ipo_applications')
-      .insert({
-        user_id: user.id,
-        ipo_id: ipo.id,
-        lots_applied: lots,
-        bid_price: bidPrice,
-        amount: amount,
-        upi_id: upiId,
-        status: 'pending'
+    const shares = lots * ipo.lot_size;
+
+    try {
+      // Create pending application first
+      const { error: insertError } = await supabase
+        .from('ipo_applications')
+        .insert({
+          user_id: user.id,
+          ipo_id: ipo.id,
+          lots_applied: lots,
+          bid_price: bidPrice,
+          amount: amount,
+          upi_id: 'stripe_pending',
+          status: 'pending_payment'
+        });
+
+      if (insertError) {
+        if (insertError.code === '23505') {
+          toast({ title: 'Already applied', description: 'You have already applied for this IPO', variant: 'destructive' });
+          setApplying(false);
+          return;
+        }
+        throw insertError;
+      }
+
+      // Create Stripe checkout session
+      const { data, error } = await supabase.functions.invoke('create-checkout', {
+        body: {
+          type: 'ipo',
+          ipoId: ipo.id,
+          ipoName: ipo.company_name,
+          amount: amount,
+          lots: lots,
+          shares: shares,
+          bidPrice: bidPrice,
+          userId: user.id,
+          successUrl: `${window.location.origin}/ipo/${ipo.id}?success=true`,
+          cancelUrl: `${window.location.origin}/ipo/${ipo.id}?canceled=true`,
+        }
       });
 
-    if (error) {
-      if (error.code === '23505') {
-        toast({ title: 'Already applied', description: 'You have already applied for this IPO', variant: 'destructive' });
+      if (error) throw error;
+
+      if (data?.url) {
+        window.location.href = data.url;
       } else {
-        toast({ title: 'Application failed', description: error.message, variant: 'destructive' });
+        throw new Error('Failed to create checkout session');
       }
-    } else {
-      toast({ title: 'Application submitted!', description: `Your application for ${lots} lot(s) has been submitted` });
-      setHasApplied(true);
-      setDialogOpen(false);
+    } catch (error: any) {
+      console.error('IPO application error:', error);
+      toast({ title: 'Application failed', description: error.message, variant: 'destructive' });
+      
+      // Clean up pending application on error
+      await supabase
+        .from('ipo_applications')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('ipo_id', ipo.id)
+        .eq('status', 'pending_payment');
     }
     
     setApplying(false);
@@ -280,15 +324,6 @@ const IPODetail = () => {
                           </p>
                         </div>
 
-                        <div className="space-y-2">
-                          <Label>UPI ID</Label>
-                          <Input
-                            placeholder="yourname@upi"
-                            value={upiId}
-                            onChange={(e) => setUpiId(e.target.value)}
-                            className="bg-secondary/50"
-                          />
-                        </div>
 
                         <div className="p-4 bg-secondary/30 rounded-lg">
                           <div className="flex justify-between mb-2">
