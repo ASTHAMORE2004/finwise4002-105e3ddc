@@ -85,20 +85,29 @@ serve(async (req) => {
 
         // Send confirmation email
         if (resend) {
+          const metadata = session.metadata || {};
+
           try {
-            const [userResult, ipoResult] = await Promise.all([
+            const [userResult, ipoResult, authUserResult] = await Promise.all([
               supabase.from("profiles").select("full_name").eq("user_id", userId).maybeSingle(),
               supabase.from("ipo_listings").select("company_name, lot_size").eq("id", ipoId).maybeSingle(),
+              supabase.auth.admin.getUserById(userId),
             ]);
 
-            const { data: authUser } = await supabase.auth.admin.getUserById(userId);
-            const metadata = session.metadata || {};
+            const toEmail = authUserResult.data?.user?.email;
+            const companyName = ipoResult.data?.company_name;
 
-            if (authUser?.user?.email && ipoResult.data) {
-              await resend.emails.send({
+            if (!toEmail) {
+              console.error("Email send skipped: could not resolve user email", { userId });
+            } else if (!companyName) {
+              console.error("Email send skipped: could not resolve IPO company name", { ipoId });
+            } else {
+              const emailResponse = await resend.emails.send({
+                // NOTE: onboarding@resend.dev works for Resend's sandbox; for production,
+                // you should verify a domain in Resend and use a sender like no-reply@yourdomain.
                 from: "FinWise <onboarding@resend.dev>",
-                to: [authUser.user.email],
-                subject: `IPO Application Confirmed - ${ipoResult.data.company_name}`,
+                to: [toEmail],
+                subject: `IPO Application Confirmed - ${companyName}`,
                 html: `
                   <!DOCTYPE html>
                   <html>
@@ -127,12 +136,12 @@ serve(async (req) => {
                       </div>
                       <div class="content">
                         <p>Dear ${userResult.data?.full_name || 'Investor'},</p>
-                        <p>Congratulations! Your application for the <strong>${ipoResult.data.company_name}</strong> IPO has been confirmed.</p>
-                        
+                        <p>Congratulations! Your application for the <strong>${companyName}</strong> IPO has been confirmed.</p>
+
                         <div class="details">
                           <div class="detail-row">
                             <span class="label">Company</span>
-                            <span class="value">${ipoResult.data.company_name}</span>
+                            <span class="value">${companyName}</span>
                           </div>
                           <div class="detail-row">
                             <span class="label">Number of Lots</span>
@@ -140,21 +149,21 @@ serve(async (req) => {
                           </div>
                           <div class="detail-row">
                             <span class="label">Total Shares</span>
-                            <span class="value">${metadata.shares || ipoResult.data.lot_size}</span>
+                            <span class="value">${metadata.shares || ipoResult.data?.lot_size || ''}</span>
                           </div>
                           <div class="detail-row">
                             <span class="label">Bid Price</span>
                             <span class="value">₹${parseFloat(metadata.bidPrice || '0').toLocaleString()}</span>
                           </div>
                         </div>
-                        
+
                         <div class="total">
                           <p style="margin: 0; font-size: 14px;">Total Amount Paid</p>
                           <p style="margin: 5px 0 0 0; font-size: 24px; font-weight: bold;">₹${((session.amount_total || 0) / 100).toLocaleString()}</p>
                         </div>
-                        
+
                         <p style="margin-top: 20px;">The allotment status will be updated once the IPO closes. You can track your application status in your portfolio.</p>
-                        
+
                         <p>Thank you for investing with FinWise!</p>
                       </div>
                       <div class="footer">
@@ -166,11 +175,24 @@ serve(async (req) => {
                   </html>
                 `,
               });
-              console.log("Confirmation email sent");
+
+              // Resend v2 can return error in response instead of throwing; log both.
+              console.log("Resend response:", JSON.stringify(emailResponse));
+
+              // If the library returns an error field, surface it.
+              // @ts-ignore - tolerate differing response shapes between runtimes.
+              if (emailResponse?.error) {
+                // @ts-ignore
+                throw new Error(`Resend error: ${JSON.stringify(emailResponse.error)}`);
+              }
+
+              console.log("Confirmation email sent", { toEmail, companyName });
             }
           } catch (emailError) {
             console.error("Failed to send email:", emailError);
           }
+        } else {
+          console.log("Resend not configured, skipping email");
         }
 
         return new Response(
@@ -178,6 +200,7 @@ serve(async (req) => {
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
         );
       } else if (application?.status === 'confirmed') {
+        // Already confirmed: still return success (email may have been delivered previously).
         return new Response(
           JSON.stringify({ success: true, message: "Already confirmed", status: "confirmed" }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
