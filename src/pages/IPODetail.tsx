@@ -47,16 +47,52 @@ const IPODetail = () => {
   // Handle payment success/cancel from URL params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get('success') === 'true') {
-      toast({ title: 'Payment successful!', description: 'Your IPO application has been confirmed.' });
-      setHasApplied(true);
-      // Clean up URL
-      window.history.replaceState({}, '', `/ipo/${id}`);
+    const sessionId = params.get('session_id');
+    
+    if (params.get('success') === 'true' && sessionId && user && id) {
+      // Verify payment and update database
+      const verifyPayment = async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('verify-payment', {
+            body: {
+              sessionId,
+              type: 'ipo',
+              ipoId: id,
+              userId: user.id,
+            }
+          });
+          
+          if (error) {
+            console.error('Payment verification error:', error);
+            toast({ title: 'Verification issue', description: 'Payment received but verification pending. Please check your portfolio.', variant: 'default' });
+          } else if (data?.success) {
+            toast({ title: 'Payment successful!', description: 'Your IPO application has been confirmed. Check your email for confirmation.' });
+            setHasApplied(true);
+          }
+        } catch (err) {
+          console.error('Payment verification failed:', err);
+        }
+        
+        // Clean up URL
+        window.history.replaceState({}, '', `/ipo/${id}`);
+      };
+      
+      verifyPayment();
     } else if (params.get('canceled') === 'true') {
       toast({ title: 'Payment canceled', description: 'Your IPO application was not completed.', variant: 'destructive' });
       window.history.replaceState({}, '', `/ipo/${id}`);
+      
+      // Clean up pending application
+      if (user && id) {
+        supabase
+          .from('ipo_applications')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('ipo_id', id)
+          .eq('status', 'pending_payment');
+      }
     }
-  }, [id, toast]);
+  }, [id, toast, user]);
 
   useEffect(() => {
     if (id) fetchIPOData();

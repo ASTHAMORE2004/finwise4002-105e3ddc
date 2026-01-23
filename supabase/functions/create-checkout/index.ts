@@ -47,6 +47,10 @@ serve(async (req) => {
       ? `IPO Application: ${lots} lot(s), ${shares} shares @ ₹${bidPrice}` 
       : `Access to ${courseName}`;
     
+    // Build success URL with session ID placeholder
+    const baseSuccessUrl = successUrl || `${req.headers.get("origin")}/${isIPO ? 'ipo' : 'courses'}`;
+    const baseCancelUrl = cancelUrl || `${req.headers.get("origin")}/${isIPO ? 'ipo' : 'courses'}?canceled=true`;
+    
     // Create checkout session
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ["card"],
@@ -64,8 +68,8 @@ serve(async (req) => {
         },
       ],
       mode: "payment",
-      success_url: successUrl || `${req.headers.get("origin")}/${isIPO ? 'ipo' : 'courses'}?success=true`,
-      cancel_url: cancelUrl || `${req.headers.get("origin")}/${isIPO ? 'ipo' : 'courses'}?canceled=true`,
+      success_url: `${baseSuccessUrl}${baseSuccessUrl.includes('?') ? '&' : '?'}success=true&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: baseCancelUrl,
       metadata: isIPO 
         ? { type: 'ipo', ipoId, userId, lots: String(lots), shares: String(shares), bidPrice: String(bidPrice) }
         : { type: 'course', courseId, userId },
