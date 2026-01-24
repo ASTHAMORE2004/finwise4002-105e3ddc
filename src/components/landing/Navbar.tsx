@@ -3,10 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Wallet, Menu, X } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslation } from "react-i18next";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <motion.nav
@@ -30,42 +34,48 @@ const Navbar = () => {
           {/* Desktop Nav */}
           <div className="hidden md:flex items-center gap-6">
             <Link to="/portfolio" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
-              Portfolio
+              {t('nav.portfolio')}
             </Link>
             <Link to="/analytics" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
-              Analytics
+              {t('nav.analytics')}
             </Link>
             <Link to="/watchlist" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
-              Watchlist
+              {t('nav.watchlist')}
             </Link>
             <Link to="/calculator" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
-              Calculator
+              {t('nav.calculator')}
             </Link>
             <Link to="/ipo" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
-              IPO
+              {t('nav.ipo')}
             </Link>
             <Link to="/startups" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
-              Startups
+              {t('nav.startups')}
             </Link>
           </div>
 
           {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-4">
+          <div className="hidden md:flex items-center gap-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
             <Button variant="ghost" className="text-muted-foreground" onClick={() => navigate('/auth')}>
-              Log In
+              {t('nav.signIn')}
             </Button>
-            <Button variant="gradient" onClick={() => navigate('/auth')}>
-              Get Started
+            <Button className="btn-primary-gradient" onClick={() => navigate('/auth')}>
+              {t('hero.getStarted')}
             </Button>
           </div>
 
           {/* Mobile Menu Toggle */}
-          <button
-            className="md:hidden text-foreground"
-            onClick={() => setIsOpen(!isOpen)}
-          >
-            {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-          </button>
+          <div className="md:hidden flex items-center gap-2">
+            <LanguageSwitcher />
+            <ThemeToggle />
+            <button
+              className="text-foreground"
+              onClick={() => setIsOpen(!isOpen)}
+            >
+              {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile Menu */}
@@ -77,27 +87,27 @@ const Navbar = () => {
             className="md:hidden py-4 border-t border-border/50"
           >
             <div className="flex flex-col gap-4">
+              <Link to="/portfolio" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
+                {t('nav.portfolio')}
+              </Link>
               <Link to="/ipo" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
-                IPO Listings
+                {t('nav.ipo')}
               </Link>
               <Link to="/courses" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
-                Courses
+                {t('nav.courses')}
               </Link>
               <Link to="/video-call" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
                 Video Calls
               </Link>
-              <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors py-2">
-                Features
-              </a>
-              <a href="#how-it-works" className="text-muted-foreground hover:text-foreground transition-colors py-2">
-                How It Works
-              </a>
+              <Link to="/startups" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
+                {t('nav.startups')}
+              </Link>
               <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
                 <Button variant="ghost" className="justify-start" onClick={() => { navigate('/auth'); setIsOpen(false); }}>
-                  Log In
+                  {t('nav.signIn')}
                 </Button>
-                <Button variant="gradient" onClick={() => { navigate('/auth'); setIsOpen(false); }}>
-                  Get Started
+                <Button className="btn-primary-gradient" onClick={() => { navigate('/auth'); setIsOpen(false); }}>
+                  {t('hero.getStarted')}
                 </Button>
               </div>
             </div>

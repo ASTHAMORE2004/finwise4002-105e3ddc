@@ -111,12 +111,14 @@ const IPODetail = () => {
     }
     
     if (user) {
+      // Check for any application that's not expired or failed
       const { data: application } = await supabase
         .from('ipo_applications')
-        .select('id')
+        .select('id, status')
         .eq('user_id', user.id)
         .eq('ipo_id', id)
-        .single();
+        .in('status', ['pending', 'pending_payment', 'confirmed', 'allotted'])
+        .maybeSingle();
       
       if (application) setHasApplied(true);
     }

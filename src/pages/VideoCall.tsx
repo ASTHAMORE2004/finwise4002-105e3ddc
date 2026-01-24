@@ -1,16 +1,18 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Video, VideoOff, Mic, MicOff, Phone, PhoneOff, Users, Copy, Check, Calendar, Plus } from 'lucide-react';
+import { Video, VideoOff, Mic, MicOff, Phone, PhoneOff, Users, Copy, Check, Calendar, Plus, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import Navbar from '@/components/landing/Navbar';
+import { TranscriptionPanel } from '@/components/TranscriptionPanel';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
+import { useTranslation } from 'react-i18next';
 import { format } from 'date-fns';
 
 interface VideoSession {
@@ -27,6 +29,7 @@ const VideoCall = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { t } = useTranslation();
   
   const [sessions, setSessions] = useState<VideoSession[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,6 +42,7 @@ const VideoCall = () => {
   const [scheduledTime, setScheduledTime] = useState('');
   const [copied, setCopied] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [showTranscript, setShowTranscript] = useState(true);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -190,67 +194,87 @@ const VideoCall = () => {
   if (inCall) {
     return (
       <div className="min-h-screen bg-background">
-        <div className="h-screen flex flex-col">
+        <div className="h-screen flex">
           {/* Video Area */}
-          <div className="flex-1 relative bg-secondary/20">
-            <video
-              ref={localVideoRef}
-              autoPlay
-              muted
-              playsInline
-              className="w-full h-full object-cover"
-            />
-            
-            {!videoEnabled && (
-              <div className="absolute inset-0 flex items-center justify-center bg-secondary">
-                <div className="text-center">
-                  <VideoOff className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">Camera is off</p>
+          <div className={`flex-1 flex flex-col ${showTranscript ? 'lg:w-2/3' : 'w-full'}`}>
+            <div className="flex-1 relative bg-secondary/20">
+              <video
+                ref={localVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className="w-full h-full object-cover"
+              />
+              
+              {!videoEnabled && (
+                <div className="absolute inset-0 flex items-center justify-center bg-secondary">
+                  <div className="text-center">
+                    <VideoOff className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground">Camera is off</p>
+                  </div>
                 </div>
+              )}
+              
+              {/* Room Info */}
+              <div className="absolute top-4 left-4 glass-card rounded-lg px-4 py-2 flex items-center gap-3">
+                <Badge variant="outline" className="bg-primary/20 text-primary">Live</Badge>
+                <span className="text-sm font-mono">{currentRoom}</span>
+                <button onClick={copyRoomId} className="hover:text-primary">
+                  {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                </button>
               </div>
-            )}
-            
-            {/* Room Info */}
-            <div className="absolute top-4 left-4 glass-card rounded-lg px-4 py-2 flex items-center gap-3">
-              <Badge variant="outline" className="bg-primary/20 text-primary">Live</Badge>
-              <span className="text-sm font-mono">{currentRoom}</span>
-              <button onClick={copyRoomId} className="hover:text-primary">
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+
+              {/* Transcript Toggle */}
+              <button
+                onClick={() => setShowTranscript(!showTranscript)}
+                className="absolute top-4 right-4 glass-card rounded-lg px-3 py-2 hover:bg-primary/20 transition-colors"
+              >
+                <FileText className="h-5 w-5" />
               </button>
+            </div>
+
+            {/* Controls */}
+            <div className="p-6 bg-card border-t border-border">
+              <div className="flex items-center justify-center gap-4">
+                <Button
+                  variant={audioEnabled ? 'outline' : 'destructive'}
+                  size="lg"
+                  className="rounded-full w-14 h-14"
+                  onClick={toggleAudio}
+                >
+                  {audioEnabled ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
+                </Button>
+                
+                <Button
+                  variant={videoEnabled ? 'outline' : 'destructive'}
+                  size="lg"
+                  className="rounded-full w-14 h-14"
+                  onClick={toggleVideo}
+                >
+                  {videoEnabled ? <Video className="h-6 w-6" /> : <VideoOff className="h-6 w-6" />}
+                </Button>
+                
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  className="rounded-full w-14 h-14"
+                  onClick={endCall}
+                >
+                  <PhoneOff className="h-6 w-6" />
+                </Button>
+              </div>
             </div>
           </div>
 
-          {/* Controls */}
-          <div className="p-6 bg-card border-t border-border">
-            <div className="flex items-center justify-center gap-4">
-              <Button
-                variant={audioEnabled ? 'outline' : 'destructive'}
-                size="lg"
-                className="rounded-full w-14 h-14"
-                onClick={toggleAudio}
-              >
-                {audioEnabled ? <Mic className="h-6 w-6" /> : <MicOff className="h-6 w-6" />}
-              </Button>
-              
-              <Button
-                variant={videoEnabled ? 'outline' : 'destructive'}
-                size="lg"
-                className="rounded-full w-14 h-14"
-                onClick={toggleVideo}
-              >
-                {videoEnabled ? <Video className="h-6 w-6" /> : <VideoOff className="h-6 w-6" />}
-              </Button>
-              
-              <Button
-                variant="destructive"
-                size="lg"
-                className="rounded-full w-14 h-14"
-                onClick={endCall}
-              >
-                <PhoneOff className="h-6 w-6" />
-              </Button>
+          {/* Transcription Panel */}
+          {showTranscript && (
+            <div className="hidden lg:block w-1/3 border-l border-border p-4">
+              <TranscriptionPanel 
+                audioStream={streamRef.current} 
+                isCallActive={inCall}
+              />
             </div>
-          </div>
+          )}
         </div>
       </div>
     );
@@ -264,10 +288,10 @@ const VideoCall = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl md:text-5xl font-display font-bold mb-4">
-              <span className="text-gradient-primary">Video</span> Consultations
+              <span className="text-gradient-primary">{t('videoCall.title').split(' ')[0]}</span> {t('videoCall.title').split(' ').slice(1).join(' ')}
             </h1>
             <p className="text-muted-foreground text-lg">
-              Connect with financial advisors through secure video calls
+              {t('videoCall.subtitle')}
             </p>
           </div>
 
@@ -276,7 +300,7 @@ const VideoCall = () => {
             <div className="glass-card rounded-xl p-6">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <Users className="h-5 w-5 text-primary" />
-                Join a Call
+                {t('videoCall.joinCall')}
               </h3>
               <div className="flex gap-2">
                 <Input
@@ -296,7 +320,7 @@ const VideoCall = () => {
                 <div className="glass-card rounded-xl p-6 cursor-pointer hover:border-primary/50 transition-all">
                   <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     <Plus className="h-5 w-5 text-primary" />
-                    Create New Session
+                    {t('videoCall.createSession')}
                   </h3>
                   <p className="text-muted-foreground text-sm">
                     Start a new video call or schedule one for later
@@ -328,7 +352,7 @@ const VideoCall = () => {
                   </div>
                   <div className="flex gap-2">
                     <Button onClick={createSession} className="flex-1 btn-primary-gradient">
-                      {scheduledTime ? 'Schedule Session' : 'Start Now'}
+                      {scheduledTime ? t('videoCall.scheduleSession') : t('videoCall.startNow')}
                     </Button>
                   </div>
                 </div>

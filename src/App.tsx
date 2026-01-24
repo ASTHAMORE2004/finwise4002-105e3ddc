@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { ThemeProvider } from "@/hooks/useTheme";
+import '@/i18n';
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Courses from "./pages/Courses";
@@ -29,36 +31,38 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/courses" element={<Courses />} />
-            <Route path="/courses/:id" element={<CourseDetail />} />
-            <Route path="/ipo" element={<IPO />} />
-            <Route path="/ipo/:id" element={<IPODetail />} />
-            <Route path="/ipo/register" element={<IPORegistration />} />
-            <Route path="/startups" element={<Startups />} />
-            <Route path="/startups/register" element={<StartupRegistration />} />
-            <Route path="/video-call" element={<VideoCall />} />
-            <Route path="/save-while-spend" element={<SaveWhileSpend />} />
-            <Route path="/expense-tracker" element={<ExpenseTracker />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/financial-literacy" element={<FinancialLiteracy />} />
-            <Route path="/admin" element={<AdminDashboard />} />
-            <Route path="/portfolio" element={<Portfolio />} />
-            <Route path="/calculator" element={<InvestmentCalculator />} />
-            <Route path="/watchlist" element={<Watchlist />} />
-            <Route path="/analytics" element={<TrendingAnalytics />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/courses" element={<Courses />} />
+              <Route path="/courses/:id" element={<CourseDetail />} />
+              <Route path="/ipo" element={<IPO />} />
+              <Route path="/ipo/:id" element={<IPODetail />} />
+              <Route path="/ipo/register" element={<IPORegistration />} />
+              <Route path="/startups" element={<Startups />} />
+              <Route path="/startups/register" element={<StartupRegistration />} />
+              <Route path="/video-call" element={<VideoCall />} />
+              <Route path="/save-while-spend" element={<SaveWhileSpend />} />
+              <Route path="/expense-tracker" element={<ExpenseTracker />} />
+              <Route path="/community" element={<Community />} />
+              <Route path="/financial-literacy" element={<FinancialLiteracy />} />
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/portfolio" element={<Portfolio />} />
+              <Route path="/calculator" element={<InvestmentCalculator />} />
+              <Route path="/watchlist" element={<Watchlist />} />
+              <Route path="/analytics" element={<TrendingAnalytics />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 
