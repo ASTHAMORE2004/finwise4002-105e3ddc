@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useStockPrices } from "@/hooks/useStockPrices";
 import { exportPortfolioToPDF } from "@/utils/pdfExport";
@@ -27,7 +28,12 @@ import {
   Target,
   Activity,
   Download,
-  RefreshCw
+  RefreshCw,
+  FileText,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertCircle
 } from "lucide-react";
 import {
   PieChart as RechartsPie,
@@ -60,6 +66,25 @@ interface PortfolioItem {
   status: string;
 }
 
+interface IpoApplication {
+  id: string;
+  ipo_id: string;
+  lots_applied: number;
+  bid_price: number;
+  amount: number;
+  status: string | null;
+  created_at: string;
+  updated_at: string;
+  ipo_listings?: {
+    company_name: string;
+    symbol: string;
+    sector: string | null;
+    open_date: string;
+    close_date: string;
+    listing_date: string | null;
+  };
+}
+
 const COLORS = ['hsl(158, 64%, 52%)', 'hsl(45, 93%, 58%)', 'hsl(280, 65%, 60%)', 'hsl(200, 70%, 50%)', 'hsl(0, 84%, 60%)'];
 
 const Portfolio = () => {
@@ -78,6 +103,8 @@ const Portfolio = () => {
     sector: ''
   });
 
+  const [ipoApplications, setIpoApplications] = useState<IpoApplication[]>([]);
+
   // Get stock symbols for real-time prices
   const stockSymbols = portfolio
     .filter(item => item.symbol && item.investment_type === 'stock')
@@ -92,8 +119,31 @@ const Portfolio = () => {
     }
     if (user) {
       fetchPortfolio();
+      fetchIpoApplications();
     }
   }, [user, authLoading, navigate]);
+
+  // Subscribe to IPO application changes for real-time updates
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel('ipo-applications-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'ipo_applications',
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          fetchIpoApplications();
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [user]);
 
   // Update portfolio with real-time prices
   useEffect(() => {
@@ -127,6 +177,20 @@ const Portfolio = () => {
       console.error('Error fetching portfolio:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchIpoApplications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('ipo_applications')
+        .select('*, ipo_listings(company_name, symbol, sector, open_date, close_date, listing_date)')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setIpoApplications((data as any) || []);
+    } catch (error) {
+      console.error('Error fetching IPO applications:', error);
     }
   };
 
@@ -503,68 +567,156 @@ const Portfolio = () => {
           </motion.div>
         </div>
 
-        {/* Holdings Table */}
+        {/* Tabbed Holdings & IPO Applications */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}>
-          <Card className="glass-card">
-            <CardHeader>
-              <CardTitle>Holdings</CardTitle>
-            </CardHeader>
-            <CardContent>
-              {portfolio.length === 0 ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Wallet className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No investments yet. Add your first investment to get started!</p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-border">
-                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Name</th>
-                        <th className="text-left py-3 px-4 text-muted-foreground font-medium">Type</th>
-                        <th className="text-right py-3 px-4 text-muted-foreground font-medium">Qty</th>
-                        <th className="text-right py-3 px-4 text-muted-foreground font-medium">Avg Price</th>
-                        <th className="text-right py-3 px-4 text-muted-foreground font-medium">Current</th>
-                        <th className="text-right py-3 px-4 text-muted-foreground font-medium">Invested</th>
-                        <th className="text-right py-3 px-4 text-muted-foreground font-medium">Current Value</th>
-                        <th className="text-right py-3 px-4 text-muted-foreground font-medium">P&L</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {portfolio.map((item) => {
-                        const pnl = (Number(item.current_value) || 0) - Number(item.invested_amount);
-                        const pnlPercent = ((pnl / Number(item.invested_amount)) * 100);
-                        return (
-                          <tr key={item.id} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
-                            <td className="py-4 px-4">
-                              <div>
-                                <p className="font-medium text-foreground">{item.investment_name}</p>
-                                {item.symbol && <p className="text-sm text-muted-foreground">{item.symbol}</p>}
-                              </div>
-                            </td>
-                            <td className="py-4 px-4">
-                              <Badge variant="outline" className="capitalize">{item.investment_type}</Badge>
-                            </td>
-                            <td className="py-4 px-4 text-right text-foreground">{item.quantity}</td>
-                            <td className="py-4 px-4 text-right text-foreground">₹{Number(item.buy_price).toLocaleString()}</td>
-                            <td className="py-4 px-4 text-right text-foreground">₹{Number(item.current_price || item.buy_price).toLocaleString()}</td>
-                            <td className="py-4 px-4 text-right text-foreground">₹{Number(item.invested_amount).toLocaleString()}</td>
-                            <td className="py-4 px-4 text-right text-foreground">₹{Number(item.current_value || item.invested_amount).toLocaleString()}</td>
-                            <td className="py-4 px-4 text-right">
-                              <div className={`flex items-center justify-end gap-1 ${pnl >= 0 ? 'text-primary' : 'text-destructive'}`}>
-                                {pnl >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
-                                <span>{pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%</span>
-                              </div>
-                            </td>
+          <Tabs defaultValue="holdings" className="w-full">
+            <TabsList className="mb-4">
+              <TabsTrigger value="holdings" className="gap-2">
+                <Wallet className="w-4 h-4" /> Holdings
+              </TabsTrigger>
+              <TabsTrigger value="ipo-applications" className="gap-2">
+                <FileText className="w-4 h-4" /> IPO Applications
+                {ipoApplications.length > 0 && (
+                  <Badge variant="secondary" className="ml-1 text-xs">{ipoApplications.length}</Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="holdings">
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle>Holdings</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {portfolio.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Wallet className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No investments yet. Add your first investment to get started!</p>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left py-3 px-4 text-muted-foreground font-medium">Name</th>
+                            <th className="text-left py-3 px-4 text-muted-foreground font-medium">Type</th>
+                            <th className="text-right py-3 px-4 text-muted-foreground font-medium">Qty</th>
+                            <th className="text-right py-3 px-4 text-muted-foreground font-medium">Avg Price</th>
+                            <th className="text-right py-3 px-4 text-muted-foreground font-medium">Current</th>
+                            <th className="text-right py-3 px-4 text-muted-foreground font-medium">Invested</th>
+                            <th className="text-right py-3 px-4 text-muted-foreground font-medium">Current Value</th>
+                            <th className="text-right py-3 px-4 text-muted-foreground font-medium">P&L</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                        </thead>
+                        <tbody>
+                          {portfolio.map((item) => {
+                            const pnl = (Number(item.current_value) || 0) - Number(item.invested_amount);
+                            const pnlPercent = ((pnl / Number(item.invested_amount)) * 100);
+                            return (
+                              <tr key={item.id} className="border-b border-border/50 hover:bg-secondary/30 transition-colors">
+                                <td className="py-4 px-4">
+                                  <div>
+                                    <p className="font-medium text-foreground">{item.investment_name}</p>
+                                    {item.symbol && <p className="text-sm text-muted-foreground">{item.symbol}</p>}
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <Badge variant="outline" className="capitalize">{item.investment_type}</Badge>
+                                </td>
+                                <td className="py-4 px-4 text-right text-foreground">{item.quantity}</td>
+                                <td className="py-4 px-4 text-right text-foreground">₹{Number(item.buy_price).toLocaleString()}</td>
+                                <td className="py-4 px-4 text-right text-foreground">₹{Number(item.current_price || item.buy_price).toLocaleString()}</td>
+                                <td className="py-4 px-4 text-right text-foreground">₹{Number(item.invested_amount).toLocaleString()}</td>
+                                <td className="py-4 px-4 text-right text-foreground">₹{Number(item.current_value || item.invested_amount).toLocaleString()}</td>
+                                <td className="py-4 px-4 text-right">
+                                  <div className={`flex items-center justify-end gap-1 ${pnl >= 0 ? 'text-primary' : 'text-destructive'}`}>
+                                    {pnl >= 0 ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                                    <span>{pnl >= 0 ? '+' : ''}{pnlPercent.toFixed(2)}%</span>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="ipo-applications">
+              <Card className="glass-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-primary" />
+                    IPO Application History
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {ipoApplications.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <FileText className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                      <p>No IPO applications yet.</p>
+                      <Button variant="outline" className="mt-4" onClick={() => navigate('/ipo')}>
+                        Browse IPOs
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-border">
+                            <th className="text-left py-3 px-4 text-muted-foreground font-medium">Company</th>
+                            <th className="text-left py-3 px-4 text-muted-foreground font-medium">Status</th>
+                            <th className="text-right py-3 px-4 text-muted-foreground font-medium">Lots</th>
+                            <th className="text-right py-3 px-4 text-muted-foreground font-medium">Bid Price</th>
+                            <th className="text-right py-3 px-4 text-muted-foreground font-medium">Amount</th>
+                            <th className="text-left py-3 px-4 text-muted-foreground font-medium">Applied On</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {ipoApplications.map((app) => {
+                            const statusConfig: Record<string, { icon: any; color: string; label: string }> = {
+                              pending: { icon: Clock, color: 'text-amber-500', label: 'Pending' },
+                              confirmed: { icon: CheckCircle2, color: 'text-primary', label: 'Confirmed' },
+                              allotted: { icon: CheckCircle2, color: 'text-emerald-500', label: 'Allotted' },
+                              rejected: { icon: XCircle, color: 'text-destructive', label: 'Rejected' },
+                              not_allotted: { icon: AlertCircle, color: 'text-muted-foreground', label: 'Not Allotted' },
+                            };
+                            const status = statusConfig[app.status || 'pending'] || statusConfig.pending;
+                            const StatusIcon = status.icon;
+                            return (
+                              <tr key={app.id} className="border-b border-border/50 hover:bg-secondary/30 transition-colors cursor-pointer" onClick={() => navigate(`/ipo/${app.ipo_id}`)}>
+                                <td className="py-4 px-4">
+                                  <div>
+                                    <p className="font-medium text-foreground">{app.ipo_listings?.company_name || 'Unknown'}</p>
+                                    <p className="text-sm text-muted-foreground">{app.ipo_listings?.symbol}</p>
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4">
+                                  <div className={`flex items-center gap-1.5 ${status.color}`}>
+                                    <StatusIcon className="w-4 h-4" />
+                                    <span className="text-sm font-medium">{status.label}</span>
+                                  </div>
+                                </td>
+                                <td className="py-4 px-4 text-right text-foreground">{app.lots_applied}</td>
+                                <td className="py-4 px-4 text-right text-foreground">₹{Number(app.bid_price).toLocaleString()}</td>
+                                <td className="py-4 px-4 text-right text-foreground">₹{Number(app.amount).toLocaleString()}</td>
+                                <td className="py-4 px-4 text-muted-foreground text-sm">
+                                  {new Date(app.created_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </motion.div>
       </div>
     </div>

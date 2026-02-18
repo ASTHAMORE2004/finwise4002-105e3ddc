@@ -1,4 +1,4 @@
-import { Wallet } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const Footer = () => {
   return (
@@ -8,9 +8,7 @@ const Footer = () => {
           {/* Brand */}
           <div className="md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-primary/70 flex items-center justify-center">
-                <Wallet className="w-5 h-5 text-primary-foreground" />
-              </div>
+              <img src={logo} alt="FinWise" className="w-10 h-10 rounded-xl object-contain" />
               <span className="font-display text-xl font-bold text-foreground">
                 Fin<span className="text-gradient-primary">Wise</span>
               </span>
@@ -54,7 +52,7 @@ const Footer = () => {
 
         {/* Bottom */}
         <div className="pt-8 border-t border-border/50 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-          <p>© 2024 FinWise. All rights reserved.</p>
+          <p>© 2026 FinWise. All rights reserved.</p>
           <div className="flex gap-6">
             <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
