@@ -2,9 +2,11 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { AnimatePresence } from "framer-motion";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ThemeProvider } from "@/hooks/useTheme";
+import PageTransition from "@/components/PageTransition";
 import '@/i18n';
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -29,6 +31,37 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const AnimatedRoutes = () => {
+  const location = useLocation();
+  
+  return (
+    <AnimatePresence mode="wait">
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<PageTransition><Index /></PageTransition>} />
+        <Route path="/auth" element={<PageTransition><Auth /></PageTransition>} />
+        <Route path="/courses" element={<PageTransition><Courses /></PageTransition>} />
+        <Route path="/courses/:id" element={<PageTransition><CourseDetail /></PageTransition>} />
+        <Route path="/ipo" element={<PageTransition><IPO /></PageTransition>} />
+        <Route path="/ipo/:id" element={<PageTransition><IPODetail /></PageTransition>} />
+        <Route path="/ipo/register" element={<PageTransition><IPORegistration /></PageTransition>} />
+        <Route path="/startups" element={<PageTransition><Startups /></PageTransition>} />
+        <Route path="/startups/register" element={<PageTransition><StartupRegistration /></PageTransition>} />
+        <Route path="/video-call" element={<PageTransition><VideoCall /></PageTransition>} />
+        <Route path="/save-while-spend" element={<PageTransition><SaveWhileSpend /></PageTransition>} />
+        <Route path="/expense-tracker" element={<PageTransition><ExpenseTracker /></PageTransition>} />
+        <Route path="/community" element={<PageTransition><Community /></PageTransition>} />
+        <Route path="/financial-literacy" element={<PageTransition><FinancialLiteracy /></PageTransition>} />
+        <Route path="/admin" element={<PageTransition><AdminDashboard /></PageTransition>} />
+        <Route path="/portfolio" element={<PageTransition><Portfolio /></PageTransition>} />
+        <Route path="/calculator" element={<PageTransition><InvestmentCalculator /></PageTransition>} />
+        <Route path="/watchlist" element={<PageTransition><Watchlist /></PageTransition>} />
+        <Route path="/analytics" element={<PageTransition><TrendingAnalytics /></PageTransition>} />
+        <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
+      </Routes>
+    </AnimatePresence>
+  );
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider>
@@ -37,28 +70,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/courses" element={<Courses />} />
-              <Route path="/courses/:id" element={<CourseDetail />} />
-              <Route path="/ipo" element={<IPO />} />
-              <Route path="/ipo/:id" element={<IPODetail />} />
-              <Route path="/ipo/register" element={<IPORegistration />} />
-              <Route path="/startups" element={<Startups />} />
-              <Route path="/startups/register" element={<StartupRegistration />} />
-              <Route path="/video-call" element={<VideoCall />} />
-              <Route path="/save-while-spend" element={<SaveWhileSpend />} />
-              <Route path="/expense-tracker" element={<ExpenseTracker />} />
-              <Route path="/community" element={<Community />} />
-              <Route path="/financial-literacy" element={<FinancialLiteracy />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/portfolio" element={<Portfolio />} />
-              <Route path="/calculator" element={<InvestmentCalculator />} />
-              <Route path="/watchlist" element={<Watchlist />} />
-              <Route path="/analytics" element={<TrendingAnalytics />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AnimatedRoutes />
           </BrowserRouter>
         </TooltipProvider>
       </AuthProvider>
