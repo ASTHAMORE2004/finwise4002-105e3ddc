@@ -27,6 +27,7 @@ import Portfolio from "./pages/Portfolio";
 import InvestmentCalculator from "./pages/InvestmentCalculator";
 import Watchlist from "./pages/Watchlist";
 import TrendingAnalytics from "./pages/TrendingAnalytics";
+import KYCVerification from "./pages/KYCVerification";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -56,6 +57,7 @@ const AnimatedRoutes = () => {
         <Route path="/calculator" element={<PageTransition><InvestmentCalculator /></PageTransition>} />
         <Route path="/watchlist" element={<PageTransition><Watchlist /></PageTransition>} />
         <Route path="/analytics" element={<PageTransition><TrendingAnalytics /></PageTransition>} />
+        <Route path="/kyc" element={<PageTransition><KYCVerification /></PageTransition>} />
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>

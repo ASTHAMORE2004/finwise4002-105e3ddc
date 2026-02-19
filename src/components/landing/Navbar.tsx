@@ -50,6 +50,12 @@ const Navbar = () => {
             <Link to="/startups" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
               {t('nav.startups')}
             </Link>
+            <Link to="/kyc" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+              KYC
+            </Link>
+            <Link to="/video-call" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+              Consult
+            </Link>
           </div>
 
           {/* Desktop CTA */}
@@ -100,6 +106,9 @@ const Navbar = () => {
               </Link>
               <Link to="/startups" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
                 {t('nav.startups')}
+              </Link>
+              <Link to="/kyc" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
+                KYC Verification
               </Link>
               <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
                 <Button variant="ghost" className="justify-start" onClick={() => { navigate('/auth'); setIsOpen(false); }}>
