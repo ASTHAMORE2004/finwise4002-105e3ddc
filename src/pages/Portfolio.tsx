@@ -679,10 +679,12 @@ const Portfolio = () => {
                           {ipoApplications.map((app) => {
                             const statusConfig: Record<string, { icon: any; color: string; label: string }> = {
                               pending: { icon: Clock, color: 'text-amber-500', label: 'Pending' },
+                              pending_payment: { icon: Clock, color: 'text-amber-400', label: 'Awaiting Payment' },
                               confirmed: { icon: CheckCircle2, color: 'text-primary', label: 'Confirmed' },
                               allotted: { icon: CheckCircle2, color: 'text-emerald-500', label: 'Allotted' },
                               rejected: { icon: XCircle, color: 'text-destructive', label: 'Rejected' },
                               not_allotted: { icon: AlertCircle, color: 'text-muted-foreground', label: 'Not Allotted' },
+                              payment_expired: { icon: XCircle, color: 'text-muted-foreground', label: 'Payment Expired' },
                             };
                             const status = statusConfig[app.status || 'pending'] || statusConfig.pending;
                             const StatusIcon = status.icon;
