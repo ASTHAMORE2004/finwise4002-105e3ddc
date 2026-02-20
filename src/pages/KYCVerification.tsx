@@ -137,9 +137,9 @@ const KYCVerification = () => {
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage
+      const { data: urlData } = await supabase.storage
         .from('documents')
-        .getPublicUrl(filePath);
+        .createSignedUrl(filePath, 60 * 60 * 24 * 365); // 1 year signed URL
 
       // Simulate document scanning (2-3 second delay)
       await new Promise(resolve => setTimeout(resolve, 2500));
@@ -167,7 +167,7 @@ const KYCVerification = () => {
         await supabase
           .from('kyc_documents')
           .update({
-            document_url: urlData.publicUrl,
+            document_url: urlData?.signedUrl || filePath,
             status: 'pending',
             rejection_reason: null,
             updated_at: new Date().toISOString(),
@@ -179,7 +179,7 @@ const KYCVerification = () => {
           .insert({
             user_id: user.id,
             document_type: docType,
-            document_url: urlData.publicUrl,
+            document_url: urlData?.signedUrl || filePath,
             status: 'pending',
           });
       }
