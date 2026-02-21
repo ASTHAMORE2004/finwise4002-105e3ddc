@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { useStockPrices } from "@/hooks/useStockPrices";
 import { exportPortfolioToPDF } from "@/utils/pdfExport";
+import ReactMarkdown from "react-markdown";
 import {
   Wallet,
   TrendingUp,
@@ -33,7 +34,9 @@ import {
   Clock,
   CheckCircle2,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  Brain,
+  Sparkles
 } from "lucide-react";
 import {
   PieChart as RechartsPie,
@@ -104,6 +107,8 @@ const Portfolio = () => {
   });
 
   const [ipoApplications, setIpoApplications] = useState<IpoApplication[]>([]);
+  const [aiInsights, setAiInsights] = useState<string | null>(null);
+  const [insightsLoading, setInsightsLoading] = useState(false);
 
   // Get stock symbols for real-time prices
   const stockSymbols = portfolio
@@ -191,6 +196,35 @@ const Portfolio = () => {
       setIpoApplications((data as any) || []);
     } catch (error) {
       console.error('Error fetching IPO applications:', error);
+    }
+  };
+
+  const fetchAiInsights = async () => {
+    setInsightsLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-portfolio-insights`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({}),
+        }
+      );
+      if (!resp.ok) {
+        const err = await resp.json();
+        throw new Error(err.error || "Failed to get insights");
+      }
+      const data = await resp.json();
+      setAiInsights(data.insights);
+    } catch (error: any) {
+      console.error("AI insights error:", error);
+      toast.error(error.message || "Failed to generate insights");
+    } finally {
+      setInsightsLoading(false);
     }
   };
 
@@ -482,6 +516,45 @@ const Portfolio = () => {
             </Card>
           </motion.div>
         </div>
+
+        {/* AI Insights Section */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.45 }} className="mb-8">
+          <Card className="glass-card border-primary/20">
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Brain className="w-5 h-5 text-primary" />
+                AI Portfolio Insights
+                <Badge variant="outline" className="ml-2 text-xs"><Sparkles className="w-3 h-3 mr-1" />Powered by AI</Badge>
+              </CardTitle>
+              <Button
+                onClick={fetchAiInsights}
+                disabled={insightsLoading || portfolio.length === 0}
+                size="sm"
+                className="btn-primary-gradient gap-2"
+              >
+                {insightsLoading ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Sparkles className="w-4 h-4" />
+                )}
+                {insightsLoading ? "Analyzing..." : "Generate Insights"}
+              </Button>
+            </CardHeader>
+            <CardContent>
+              {aiInsights ? (
+                <div className="prose prose-sm prose-invert max-w-none">
+                  <ReactMarkdown>{aiInsights}</ReactMarkdown>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Brain className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                  <p className="text-sm">Click "Generate Insights" to get AI-powered analysis of your portfolio</p>
+                  <p className="text-xs mt-1">Our AI analyzes your holdings, diversification, and risk profile</p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">

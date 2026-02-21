@@ -1,9 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Mic, MicOff, Download, Copy, Check } from 'lucide-react';
+import { FileText, Mic, MicOff, Download, Copy, Check, Brain, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import ReactMarkdown from 'react-markdown';
 
 interface TranscriptEntry {
   id: string;
@@ -22,6 +24,8 @@ export function TranscriptionPanel({ audioStream, isCallActive }: TranscriptionP
   const [transcripts, setTranscripts] = useState<TranscriptEntry[]>([]);
   const [interimText, setInterimText] = useState('');
   const [copied, setCopied] = useState(false);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
@@ -155,6 +159,33 @@ export function TranscriptionPanel({ audioStream, isCallActive }: TranscriptionP
     toast({ title: 'Downloaded!', description: 'Transcript saved to file' });
   };
 
+  const generateSummary = async () => {
+    if (transcripts.length === 0) return;
+    setSummaryLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const fullText = transcripts.map(t => t.text).join('\n');
+      const resp = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-meeting-summary`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ transcript: fullText, meetingType: "investor-startup" }),
+        }
+      );
+      if (!resp.ok) throw new Error((await resp.json()).error || "Summary failed");
+      const data = await resp.json();
+      setAiSummary(data.summary);
+    } catch (error: any) {
+      toast({ title: 'Summary Failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
@@ -180,6 +211,16 @@ export function TranscriptionPanel({ audioStream, isCallActive }: TranscriptionP
                 onClick={copyTranscript}
               >
                 {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={generateSummary}
+                disabled={summaryLoading || transcripts.length === 0}
+                title="AI Summary"
+              >
+                {summaryLoading ? <Sparkles className="h-4 w-4 animate-spin" /> : <Brain className="h-4 w-4" />}
               </Button>
               <Button
                 variant="ghost"
@@ -250,6 +291,17 @@ export function TranscriptionPanel({ audioStream, isCallActive }: TranscriptionP
           </div>
         )}
       </ScrollArea>
+
+      {aiSummary && (
+        <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg max-h-48 overflow-y-auto">
+          <h4 className="text-xs font-semibold text-primary flex items-center gap-1 mb-2">
+            <Brain className="w-3 h-3" /> AI Meeting Summary
+          </h4>
+          <div className="prose prose-sm prose-invert max-w-none text-xs">
+            <ReactMarkdown>{aiSummary}</ReactMarkdown>
+          </div>
+        </div>
+      )}
 
       {isTranscribing && (
         <div className="mt-4 flex items-center justify-center gap-2 text-sm text-primary">
