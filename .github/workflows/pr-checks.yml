@@ -1,0 +1,58 @@
+name: PR Quality Gate
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  pr-summary:
+    name: 📋 PR Analysis
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Analyze changes
+        run: |
+          echo "## 📋 Change Analysis" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          CHANGED_FILES=$(git diff --name-only origin/main...HEAD | wc -l)
+          CHANGED_COMPONENTS=$(git diff --name-only origin/main...HEAD | grep "src/components" | wc -l)
+          CHANGED_PAGES=$(git diff --name-only origin/main...HEAD | grep "src/pages" | wc -l)
+          CHANGED_FUNCTIONS=$(git diff --name-only origin/main...HEAD | grep "supabase/functions" | wc -l)
+          
+          echo "| Category | Count |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|-------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Total files changed | $CHANGED_FILES |" >> $GITHUB_STEP_SUMMARY
+          echo "| Components modified | $CHANGED_COMPONENTS |" >> $GITHUB_STEP_SUMMARY
+          echo "| Pages modified | $CHANGED_PAGES |" >> $GITHUB_STEP_SUMMARY
+          echo "| Edge functions modified | $CHANGED_FUNCTIONS |" >> $GITHUB_STEP_SUMMARY
+
+  edge-function-check:
+    name: ⚡ Edge Function Validation
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate edge function structure
+        run: |
+          echo "Checking edge function structure..."
+          for dir in supabase/functions/*/; do
+            fn_name=$(basename "$dir")
+            if [ "$fn_name" = "_shared" ]; then continue; fi
+            if [ ! -f "$dir/index.ts" ]; then
+              echo "❌ Missing index.ts in $fn_name"
+              exit 1
+            fi
+            
+            # Check for CORS headers
+            if ! grep -q "Access-Control-Allow-Origin" "$dir/index.ts"; then
+              echo "⚠️ $fn_name may be missing CORS headers"
+            fi
+            
+            echo "✅ $fn_name structure valid"
+          done
