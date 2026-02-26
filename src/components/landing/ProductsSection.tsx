@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, BookOpen, Video, ArrowRight } from "lucide-react";
+import { TrendingUp, BookOpen, Users, ArrowRight } from "lucide-react";
 
 const products = [
   {
@@ -20,10 +20,10 @@ const products = [
     bgGlow: "bg-violet-500/20",
   },
   {
-    icon: Video,
-    title: "Video Consultations",
-    description: "Connect with financial experts through live video calls. Get personalized advice for your investment journey.",
-    path: "/video-call",
+    icon: Users,
+    title: "Investor Meet",
+    description: "Prepare AI-powered pitches, schedule investor calls, and get your startup investor-ready with smart tools.",
+    path: "/investor-meet",
     gradient: "from-orange-500 to-red-500",
     bgGlow: "bg-orange-500/20",
   },
