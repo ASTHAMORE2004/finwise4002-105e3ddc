@@ -32,3 +32,21 @@ verify_jwt = false
 
 [functions.ai-pdf-extract]
 verify_jwt = false
+
+[functions.ai-sentiment-analysis]
+verify_jwt = false
+
+[functions.ai-risk-profiler]
+verify_jwt = false
+
+[functions.ai-expense-categorizer]
+verify_jwt = false
+
+[functions.ai-portfolio-rebalancer]
+verify_jwt = false
+
+[functions.ai-fraud-detection]
+verify_jwt = false
+
+[functions.ai-smart-search]
+verify_jwt = false
