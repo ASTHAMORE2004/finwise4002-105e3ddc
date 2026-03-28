@@ -36,7 +36,32 @@ import {
   Legend
 } from "recharts";
 
+interface IPOListing {
+  id: string;
+  company_name: string;
+  sector: string | null;
+  price_band_low: number;
+  price_band_high: number;
+  lot_size: number;
+  subscription_rate: number | null;
+  issue_size: number | null;
+  status: string | null;
+}
+
 const InvestmentCalculator = () => {
+  const navigate = useNavigate();
+  const [ipos, setIpos] = useState<IPOListing[]>([]);
+
+  useEffect(() => {
+    const fetchIpos = async () => {
+      const { data } = await supabase
+        .from('ipo_listings')
+        .select('*')
+        .order('subscription_rate', { ascending: false });
+      setIpos(data || []);
+    };
+    fetchIpos();
+  }, []);
   // SIP Calculator State
   const [sipMonthly, setSipMonthly] = useState(5000);
   const [sipRate, setSipRate] = useState(12);
