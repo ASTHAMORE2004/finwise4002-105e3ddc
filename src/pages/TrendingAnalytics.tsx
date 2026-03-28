@@ -317,6 +317,10 @@ const TrendingAnalytics = () => {
               <Shield className="w-4 h-4" />
               Risk Analysis
             </TabsTrigger>
+            <TabsTrigger value="recommendations" className="flex items-center gap-2">
+              <ArrowUpRight className="w-4 h-4" />
+              AI Picks
+            </TabsTrigger>
           </TabsList>
 
           {/* Trending Tab */}
