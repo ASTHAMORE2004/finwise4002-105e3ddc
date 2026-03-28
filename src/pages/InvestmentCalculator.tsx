@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/landing/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -7,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Calculator,
   TrendingUp,
@@ -15,7 +19,9 @@ import {
   PiggyBank,
   BarChart3,
   Target,
-  IndianRupee
+  IndianRupee,
+  Lightbulb,
+  ArrowUpRight
 } from "lucide-react";
 import {
   AreaChart,
