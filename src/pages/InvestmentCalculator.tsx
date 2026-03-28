@@ -666,68 +666,89 @@ const InvestmentCalculator = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {(() => {
-                  const budget = Math.max(sipMonthly * 3, lumpsum * 0.1); // 3 months SIP or 10% lumpsum
+              {(() => {
+                  const totalSipInvestment = sipMonthly * sipYears * 12;
+                  const budget = Math.max(sipMonthly * sipYears, lumpsum * 0.2);
                   const targetReturn = Math.max(sipRate, lumpsumRate);
+                  const timePeriod = Math.max(sipYears, lumpsumYears);
 
                   const recommendations = ipos
                     .map(ipo => {
                       const lotCost = ipo.price_band_high * ipo.lot_size;
                       const affordableLots = Math.floor(budget / lotCost) || 0;
-                      const budgetFit = affordableLots > 0 ? 30 : Math.max(0, 15 - (lotCost - budget) / lotCost * 15);
-                      const subScore = Math.min((ipo.subscription_rate || 0) * 8, 35);
-                      const sizeScore = ipo.issue_size ? Math.min(ipo.issue_size / 500, 15) : 5;
-                      const returnFit = targetReturn > 15 ? (ipo.subscription_rate || 0) > 2 ? 20 : 10 : 15;
-                      const totalScore = budgetFit + subScore + sizeScore + returnFit;
+                      
+                      // Budget fit: higher when user can afford more lots
+                      const budgetFit = affordableLots >= 3 ? 25 : affordableLots >= 1 ? 18 : Math.max(0, 10 - (lotCost - budget) / lotCost * 10);
+                      
+                      // Subscription demand score
+                      const subScore = Math.min((ipo.subscription_rate || 0) * 5, 25);
+                      
+                      // Issue size stability score
+                      const sizeScore = ipo.issue_size ? Math.min(ipo.issue_size / 400, 15) : 5;
+                      
+                      // Return alignment: high-return seekers prefer high-subscription IPOs
+                      const returnFit = targetReturn > 20 
+                        ? ((ipo.subscription_rate || 0) > 15 ? 20 : (ipo.subscription_rate || 0) > 5 ? 12 : 5)
+                        : targetReturn > 12 
+                          ? ((ipo.subscription_rate || 0) > 5 ? 18 : 10)
+                          : 15;
+                      
+                      // Time horizon bonus: longer periods favor larger/stable IPOs
+                      const timeBonus = timePeriod > 15 
+                        ? (ipo.issue_size || 0) > 3000 ? 15 : 8
+                        : timePeriod > 7 
+                          ? 10 
+                          : (ipo.subscription_rate || 0) > 10 ? 12 : 6;
+
+                      const totalScore = budgetFit + subScore + sizeScore + returnFit + timeBonus;
 
                       return {
                         ...ipo,
                         lotCost,
                         affordableLots,
                         score: Math.min(totalScore, 100),
-                        tag: totalScore > 65 ? 'Best Match' : totalScore > 45 ? 'Good Fit' : 'Consider',
-                        tagColor: totalScore > 65 ? 'text-primary bg-primary/20' : totalScore > 45 ? 'text-accent bg-accent/20' : 'text-muted-foreground bg-secondary',
+                        tag: totalScore > 70 ? 'Strong Buy' : totalScore > 55 ? 'Best Match' : totalScore > 40 ? 'Good Fit' : 'Watch',
+                        tagColor: totalScore > 70 ? 'text-green-400 bg-green-400/20' : totalScore > 55 ? 'text-primary bg-primary/20' : totalScore > 40 ? 'text-accent bg-accent/20' : 'text-muted-foreground bg-secondary',
                       };
                     })
-                    .sort((a, b) => b.score - a.score)
-                    .slice(0, 5);
+                    .sort((a, b) => b.score - a.score);
 
                   return (
-                    <div className="space-y-4">
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
                       {recommendations.map((ipo, index) => (
                         <div
                           key={ipo.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors gap-3"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors gap-2"
                           onClick={() => navigate(`/ipo/${ipo.id}`)}
                         >
-                          <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${index < 2 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${index < 3 ? 'bg-primary text-primary-foreground' : index < 7 ? 'bg-accent/30 text-accent' : 'bg-secondary text-foreground'}`}>
                               #{index + 1}
                             </div>
-                            <div>
-                              <p className="font-semibold text-foreground">{ipo.company_name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {ipo.sector} • ₹{ipo.price_band_low}-{ipo.price_band_high} • Lot: {ipo.lot_size}
+                            <div className="min-w-0">
+                              <p className="font-semibold text-foreground text-sm">{ipo.company_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {ipo.sector} • ₹{ipo.price_band_low}-{ipo.price_band_high} • Lot: {ipo.lot_size} • Sub: {ipo.subscription_rate || 0}x
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                Min investment: {formatCurrency(ipo.lotCost)} • {ipo.affordableLots > 0 ? `You can apply for ${ipo.affordableLots} lot(s)` : 'Stretch budget needed'}
+                                Min: {formatCurrency(ipo.lotCost)} • {ipo.affordableLots > 0 ? `${ipo.affordableLots} lot(s) affordable` : 'Above budget'}
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 ml-14 sm:ml-0">
+                          <div className="flex items-center gap-2 ml-11 sm:ml-0 shrink-0">
                             <div className="text-right">
-                              <p className="text-xs text-muted-foreground">Match</p>
-                              <p className="font-bold text-primary">{ipo.score.toFixed(0)}%</p>
+                              <p className="text-xs text-muted-foreground">Score</p>
+                              <p className="font-bold text-primary text-sm">{ipo.score.toFixed(0)}%</p>
                             </div>
-                            <Progress value={ipo.score} className="w-16 h-2" />
-                            <Badge className={`${ipo.tagColor} border-0 whitespace-nowrap`}>
+                            <Progress value={ipo.score} className="w-14 h-2" />
+                            <Badge className={`${ipo.tagColor} border-0 whitespace-nowrap text-xs`}>
                               {ipo.tag}
                             </Badge>
                           </div>
                         </div>
                       ))}
                       <p className="text-xs text-muted-foreground text-center pt-2">
-                        * Recommendations adapt based on your SIP amount (₹{sipMonthly.toLocaleString()}/mo), lumpsum (₹{lumpsum.toLocaleString()}), and expected return ({targetReturn}%)
+                        * Rankings update live based on: Monthly SIP ₹{sipMonthly.toLocaleString()}, Expected Return {targetReturn}%, Time Period {timePeriod}yrs, Lumpsum ₹{lumpsum.toLocaleString()}
                       </p>
                     </div>
                   );
