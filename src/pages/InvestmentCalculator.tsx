@@ -1,5 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 import Navbar from "@/components/landing/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -7,6 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import {
   Calculator,
   TrendingUp,
@@ -15,7 +19,9 @@ import {
   PiggyBank,
   BarChart3,
   Target,
-  IndianRupee
+  IndianRupee,
+  Lightbulb,
+  ArrowUpRight
 } from "lucide-react";
 import {
   AreaChart,
@@ -30,7 +36,32 @@ import {
   Legend
 } from "recharts";
 
+interface IPOListing {
+  id: string;
+  company_name: string;
+  sector: string | null;
+  price_band_low: number;
+  price_band_high: number;
+  lot_size: number;
+  subscription_rate: number | null;
+  issue_size: number | null;
+  status: string | null;
+}
+
 const InvestmentCalculator = () => {
+  const navigate = useNavigate();
+  const [ipos, setIpos] = useState<IPOListing[]>([]);
+
+  useEffect(() => {
+    const fetchIpos = async () => {
+      const { data } = await supabase
+        .from('ipo_listings')
+        .select('*')
+        .order('subscription_rate', { ascending: false });
+      setIpos(data || []);
+    };
+    fetchIpos();
+  }, []);
   // SIP Calculator State
   const [sipMonthly, setSipMonthly] = useState(5000);
   const [sipRate, setSipRate] = useState(12);
@@ -595,6 +626,91 @@ const InvestmentCalculator = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* Dynamic IPO Recommendations based on calculator inputs */}
+        {ipos.length > 0 && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="mt-12">
+            <Card className="glass-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lightbulb className="w-5 h-5 text-accent" />
+                  Recommended IPOs Based on Your Inputs
+                </CardTitle>
+                <CardDescription>
+                  IPOs matched to your investment capacity of {formatCurrency(sipResult.totalInvested)} (SIP) or {formatCurrency(lumpsum)} (Lumpsum)
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {(() => {
+                  const budget = Math.max(sipMonthly * 3, lumpsum * 0.1); // 3 months SIP or 10% lumpsum
+                  const targetReturn = Math.max(sipRate, lumpsumRate);
+
+                  const recommendations = ipos
+                    .map(ipo => {
+                      const lotCost = ipo.price_band_high * ipo.lot_size;
+                      const affordableLots = Math.floor(budget / lotCost) || 0;
+                      const budgetFit = affordableLots > 0 ? 30 : Math.max(0, 15 - (lotCost - budget) / lotCost * 15);
+                      const subScore = Math.min((ipo.subscription_rate || 0) * 8, 35);
+                      const sizeScore = ipo.issue_size ? Math.min(ipo.issue_size / 500, 15) : 5;
+                      const returnFit = targetReturn > 15 ? (ipo.subscription_rate || 0) > 2 ? 20 : 10 : 15;
+                      const totalScore = budgetFit + subScore + sizeScore + returnFit;
+
+                      return {
+                        ...ipo,
+                        lotCost,
+                        affordableLots,
+                        score: Math.min(totalScore, 100),
+                        tag: totalScore > 65 ? 'Best Match' : totalScore > 45 ? 'Good Fit' : 'Consider',
+                        tagColor: totalScore > 65 ? 'text-primary bg-primary/20' : totalScore > 45 ? 'text-accent bg-accent/20' : 'text-muted-foreground bg-secondary',
+                      };
+                    })
+                    .sort((a, b) => b.score - a.score)
+                    .slice(0, 5);
+
+                  return (
+                    <div className="space-y-4">
+                      {recommendations.map((ipo, index) => (
+                        <div
+                          key={ipo.id}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors gap-3"
+                          onClick={() => navigate(`/ipo/${ipo.id}`)}
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${index < 2 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
+                              #{index + 1}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-foreground">{ipo.company_name}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {ipo.sector} • ₹{ipo.price_band_low}-{ipo.price_band_high} • Lot: {ipo.lot_size}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Min investment: {formatCurrency(ipo.lotCost)} • {ipo.affordableLots > 0 ? `You can apply for ${ipo.affordableLots} lot(s)` : 'Stretch budget needed'}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3 ml-14 sm:ml-0">
+                            <div className="text-right">
+                              <p className="text-xs text-muted-foreground">Match</p>
+                              <p className="font-bold text-primary">{ipo.score.toFixed(0)}%</p>
+                            </div>
+                            <Progress value={ipo.score} className="w-16 h-2" />
+                            <Badge className={`${ipo.tagColor} border-0 whitespace-nowrap`}>
+                              {ipo.tag}
+                            </Badge>
+                          </div>
+                        </div>
+                      ))}
+                      <p className="text-xs text-muted-foreground text-center pt-2">
+                        * Recommendations adapt based on your SIP amount (₹{sipMonthly.toLocaleString()}/mo), lumpsum (₹{lumpsum.toLocaleString()}), and expected return ({targetReturn}%)
+                      </p>
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
       </div>
     </div>
   );

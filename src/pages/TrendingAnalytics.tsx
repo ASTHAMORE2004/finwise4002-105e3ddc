@@ -317,6 +317,10 @@ const TrendingAnalytics = () => {
               <Shield className="w-4 h-4" />
               Risk Analysis
             </TabsTrigger>
+            <TabsTrigger value="recommendations" className="flex items-center gap-2">
+              <ArrowUpRight className="w-4 h-4" />
+              AI Picks
+            </TabsTrigger>
           </TabsList>
 
           {/* Trending Tab */}
@@ -726,6 +730,177 @@ const TrendingAnalytics = () => {
                   </CardContent>
                 </Card>
               </motion.div>
+            </div>
+          </TabsContent>
+          {/* AI Recommendations Tab */}
+          <TabsContent value="recommendations">
+            <div className="grid gap-8">
+              {/* AI-Scored IPO Recommendations */}
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+                <Card className="glass-card">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <ArrowUpRight className="w-5 h-5 text-primary" />
+                      AI-Recommended IPOs
+                    </CardTitle>
+                    <CardDescription>
+                      Ranked by composite score: subscription rate, sector performance, risk-adjusted returns
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {(() => {
+                      const scoredIpos = ipos.map(ipo => {
+                        const risk = calculateRiskScore(ipo, 'ipo');
+                        const subscriptionScore = Math.min((ipo.subscription_rate || 0) * 10, 40);
+                        const sizeScore = ipo.issue_size ? Math.min(ipo.issue_size / 500, 20) : 5;
+                        const riskScore = (10 - risk) * 4; // Lower risk = higher score
+                        const composite = subscriptionScore + sizeScore + riskScore;
+                        const sectorIpos = ipos.filter(i => i.sector === ipo.sector);
+                        const sectorAvgSub = sectorIpos.reduce((s, i) => s + (i.subscription_rate || 0), 0) / (sectorIpos.length || 1);
+                        return {
+                          ...ipo,
+                          compositeScore: Math.min(composite, 100),
+                          risk,
+                          riskLevel: getRiskLevel(risk),
+                          sectorAvgSub,
+                          recommendation: composite > 60 ? 'Strong Buy' : composite > 40 ? 'Buy' : composite > 25 ? 'Hold' : 'Watch',
+                          recColor: composite > 60 ? 'text-primary bg-primary/20' : composite > 40 ? 'text-accent bg-accent/20' : composite > 25 ? 'text-muted-foreground bg-secondary' : 'text-destructive bg-destructive/20',
+                        };
+                      }).sort((a, b) => b.compositeScore - a.compositeScore);
+
+                      if (scoredIpos.length === 0) {
+                        return (
+                          <div className="text-center py-12 text-muted-foreground">
+                            No IPO data available for recommendations
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="space-y-4">
+                          {scoredIpos.map((ipo, index) => (
+                            <div
+                              key={ipo.id}
+                              className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors gap-3"
+                              onClick={() => navigate(`/ipo/${ipo.id}`)}
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${index < 3 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
+                                  #{index + 1}
+                                </div>
+                                <div>
+                                  <p className="font-semibold text-foreground">{ipo.company_name}</p>
+                                  <p className="text-sm text-muted-foreground">{ipo.sector} • {ipo.subscription_rate || 0}x subscribed</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-3 ml-14 sm:ml-0">
+                                <div className="text-right">
+                                  <p className="text-xs text-muted-foreground">AI Score</p>
+                                  <p className="font-bold text-primary">{ipo.compositeScore.toFixed(0)}/100</p>
+                                </div>
+                                <Progress value={ipo.compositeScore} className="w-20 h-2" />
+                                <Badge className={`${ipo.recColor} border-0 whitespace-nowrap`}>
+                                  {ipo.recommendation}
+                                </Badge>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Sector Momentum */}
+              <div className="grid lg:grid-cols-2 gap-8">
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                  <Card className="glass-card h-full">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Flame className="w-5 h-5 text-accent" />
+                        Hot Sectors
+                      </CardTitle>
+                      <CardDescription>Sectors with highest average subscription rates</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {(() => {
+                        const sectorPerformance = ipoSectorData
+                          .map(sector => {
+                            const sectorIpos = ipos.filter(i => (i.sector || 'Other') === sector.name);
+                            const avgSub = sectorIpos.reduce((s, i) => s + (i.subscription_rate || 0), 0) / (sectorIpos.length || 1);
+                            return { ...sector, avgSub, ipoCount: sectorIpos.length };
+                          })
+                          .sort((a, b) => b.avgSub - a.avgSub)
+                          .slice(0, 5);
+
+                        return sectorPerformance.map((sector, index) => (
+                          <div key={sector.name} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30">
+                            <div className="flex items-center gap-3">
+                              <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
+                              <div>
+                                <p className="font-medium text-foreground">{sector.name}</p>
+                                <p className="text-sm text-muted-foreground">{sector.ipoCount} IPOs</p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-bold text-primary">{sector.avgSub.toFixed(1)}x</p>
+                              <p className="text-xs text-muted-foreground">avg subscription</p>
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                  <Card className="glass-card h-full">
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Target className="w-5 h-5 text-primary" />
+                        Investment Insights
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      {(() => {
+                        const totalIssueSize = ipos.reduce((s, i) => s + (i.issue_size || 0), 0);
+                        const avgSubscription = ipos.reduce((s, i) => s + (i.subscription_rate || 0), 0) / (ipos.length || 1);
+                        const highSubCount = ipos.filter(i => (i.subscription_rate || 0) > 2).length;
+                        const topSector = ipoSectorData.sort((a, b) => b.value - a.value)[0];
+
+                        return (
+                          <>
+                            <div className="p-4 rounded-xl bg-primary/10 border border-primary/30">
+                              <p className="text-sm text-muted-foreground">Average Subscription Rate</p>
+                              <p className="text-2xl font-bold text-primary">{avgSubscription.toFixed(1)}x</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {avgSubscription > 2 ? '🔥 Market is bullish — strong demand' : 'Market showing moderate interest'}
+                              </p>
+                            </div>
+                            <div className="p-4 rounded-xl bg-accent/10 border border-accent/30">
+                              <p className="text-sm text-muted-foreground">Oversubscribed IPOs ({'>'}2x)</p>
+                              <p className="text-2xl font-bold text-accent">{highSubCount} / {ipos.length}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {highSubCount > ipos.length / 2 ? 'Majority oversubscribed — high investor confidence' : 'Selective subscription patterns'}
+                              </p>
+                            </div>
+                            {topSector && (
+                              <div className="p-4 rounded-xl bg-secondary/50 border border-border">
+                                <p className="text-sm text-muted-foreground">Dominant Sector</p>
+                                <p className="text-xl font-bold text-foreground">{topSector.name}</p>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  {formatCurrency(topSector.value)} in issue size across {topSector.count} IPOs
+                                </p>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
