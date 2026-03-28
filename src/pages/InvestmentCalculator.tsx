@@ -50,7 +50,30 @@ interface IPOListing {
 
 const InvestmentCalculator = () => {
   const navigate = useNavigate();
-  const [ipos, setIpos] = useState<IPOListing[]>([]);
+  const sampleIpos: IPOListing[] = [
+    { id: '1', company_name: 'TechNova AI', sector: 'Technology', price_band_low: 350, price_band_high: 380, lot_size: 40, subscription_rate: 45.2, issue_size: 2500, status: 'open' },
+    { id: '2', company_name: 'GreenPower Energy', sector: 'Energy', price_band_low: 120, price_band_high: 140, lot_size: 100, subscription_rate: 32.8, issue_size: 1800, status: 'open' },
+    { id: '3', company_name: 'FinStack Digital', sector: 'Fintech', price_band_low: 500, price_band_high: 540, lot_size: 28, subscription_rate: 28.5, issue_size: 3200, status: 'open' },
+    { id: '4', company_name: 'MediCare Plus', sector: 'Healthcare', price_band_low: 200, price_band_high: 220, lot_size: 65, subscription_rate: 22.1, issue_size: 1500, status: 'open' },
+    { id: '5', company_name: 'AgroSmart Foods', sector: 'FMCG', price_band_low: 80, price_band_high: 95, lot_size: 150, subscription_rate: 18.6, issue_size: 900, status: 'open' },
+    { id: '6', company_name: 'CloudBridge Infra', sector: 'Infrastructure', price_band_low: 280, price_band_high: 310, lot_size: 45, subscription_rate: 15.4, issue_size: 4500, status: 'open' },
+    { id: '7', company_name: 'EduLearn Pro', sector: 'EdTech', price_band_low: 150, price_band_high: 175, lot_size: 80, subscription_rate: 12.9, issue_size: 1200, status: 'open' },
+    { id: '8', company_name: 'AutoDrive Motors', sector: 'Automobile', price_band_low: 600, price_band_high: 650, lot_size: 22, subscription_rate: 11.3, issue_size: 5800, status: 'open' },
+    { id: '9', company_name: 'PharmaCure Bio', sector: 'Pharma', price_band_low: 420, price_band_high: 450, lot_size: 33, subscription_rate: 9.7, issue_size: 2200, status: 'open' },
+    { id: '10', company_name: 'RetailMax Chain', sector: 'Retail', price_band_low: 90, price_band_high: 105, lot_size: 130, subscription_rate: 8.2, issue_size: 750, status: 'open' },
+    { id: '11', company_name: 'SkyNet Telecom', sector: 'Telecom', price_band_low: 320, price_band_high: 350, lot_size: 42, subscription_rate: 7.5, issue_size: 6200, status: 'open' },
+    { id: '12', company_name: 'CryptoVault Finance', sector: 'Fintech', price_band_low: 180, price_band_high: 200, lot_size: 70, subscription_rate: 35.0, issue_size: 1600, status: 'open' },
+    { id: '13', company_name: 'SolarGrid Tech', sector: 'Energy', price_band_low: 250, price_band_high: 275, lot_size: 55, subscription_rate: 19.3, issue_size: 2800, status: 'open' },
+    { id: '14', company_name: 'FoodieExpress', sector: 'Consumer', price_band_low: 110, price_band_high: 130, lot_size: 110, subscription_rate: 14.8, issue_size: 980, status: 'open' },
+    { id: '15', company_name: 'DataMesh Analytics', sector: 'Technology', price_band_low: 440, price_band_high: 470, lot_size: 30, subscription_rate: 26.4, issue_size: 3500, status: 'open' },
+    { id: '16', company_name: 'HomeFirst Realty', sector: 'Real Estate', price_band_low: 380, price_band_high: 410, lot_size: 36, subscription_rate: 6.1, issue_size: 4100, status: 'open' },
+    { id: '17', company_name: 'LogiTrans Cargo', sector: 'Logistics', price_band_low: 160, price_band_high: 185, lot_size: 75, subscription_rate: 10.5, issue_size: 1350, status: 'open' },
+    { id: '18', company_name: 'NanoMat Sciences', sector: 'Materials', price_band_low: 700, price_band_high: 750, lot_size: 20, subscription_rate: 42.0, issue_size: 7500, status: 'open' },
+    { id: '19', company_name: 'UrbanClap Services', sector: 'Services', price_band_low: 55, price_band_high: 65, lot_size: 200, subscription_rate: 5.3, issue_size: 600, status: 'open' },
+    { id: '20', company_name: 'BioGenix Labs', sector: 'Biotech', price_band_low: 520, price_band_high: 560, lot_size: 25, subscription_rate: 30.2, issue_size: 4800, status: 'open' },
+  ];
+
+  const [dbIpos, setDbIpos] = useState<IPOListing[]>([]);
 
   useEffect(() => {
     const fetchIpos = async () => {
@@ -58,10 +81,12 @@ const InvestmentCalculator = () => {
         .from('ipo_listings')
         .select('*')
         .order('subscription_rate', { ascending: false });
-      setIpos(data || []);
+      setDbIpos(data || []);
     };
     fetchIpos();
   }, []);
+
+  const ipos = dbIpos.length >= 20 ? dbIpos : [...dbIpos, ...sampleIpos].slice(0, 20);
   // SIP Calculator State
   const [sipMonthly, setSipMonthly] = useState(5000);
   const [sipRate, setSipRate] = useState(12);
@@ -641,68 +666,89 @@ const InvestmentCalculator = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {(() => {
-                  const budget = Math.max(sipMonthly * 3, lumpsum * 0.1); // 3 months SIP or 10% lumpsum
+              {(() => {
+                  const totalSipInvestment = sipMonthly * sipYears * 12;
+                  const budget = Math.max(sipMonthly * sipYears, lumpsum * 0.2);
                   const targetReturn = Math.max(sipRate, lumpsumRate);
+                  const timePeriod = Math.max(sipYears, lumpsumYears);
 
                   const recommendations = ipos
                     .map(ipo => {
                       const lotCost = ipo.price_band_high * ipo.lot_size;
                       const affordableLots = Math.floor(budget / lotCost) || 0;
-                      const budgetFit = affordableLots > 0 ? 30 : Math.max(0, 15 - (lotCost - budget) / lotCost * 15);
-                      const subScore = Math.min((ipo.subscription_rate || 0) * 8, 35);
-                      const sizeScore = ipo.issue_size ? Math.min(ipo.issue_size / 500, 15) : 5;
-                      const returnFit = targetReturn > 15 ? (ipo.subscription_rate || 0) > 2 ? 20 : 10 : 15;
-                      const totalScore = budgetFit + subScore + sizeScore + returnFit;
+                      
+                      // Budget fit: higher when user can afford more lots
+                      const budgetFit = affordableLots >= 3 ? 25 : affordableLots >= 1 ? 18 : Math.max(0, 10 - (lotCost - budget) / lotCost * 10);
+                      
+                      // Subscription demand score
+                      const subScore = Math.min((ipo.subscription_rate || 0) * 5, 25);
+                      
+                      // Issue size stability score
+                      const sizeScore = ipo.issue_size ? Math.min(ipo.issue_size / 400, 15) : 5;
+                      
+                      // Return alignment: high-return seekers prefer high-subscription IPOs
+                      const returnFit = targetReturn > 20 
+                        ? ((ipo.subscription_rate || 0) > 15 ? 20 : (ipo.subscription_rate || 0) > 5 ? 12 : 5)
+                        : targetReturn > 12 
+                          ? ((ipo.subscription_rate || 0) > 5 ? 18 : 10)
+                          : 15;
+                      
+                      // Time horizon bonus: longer periods favor larger/stable IPOs
+                      const timeBonus = timePeriod > 15 
+                        ? (ipo.issue_size || 0) > 3000 ? 15 : 8
+                        : timePeriod > 7 
+                          ? 10 
+                          : (ipo.subscription_rate || 0) > 10 ? 12 : 6;
+
+                      const totalScore = budgetFit + subScore + sizeScore + returnFit + timeBonus;
 
                       return {
                         ...ipo,
                         lotCost,
                         affordableLots,
                         score: Math.min(totalScore, 100),
-                        tag: totalScore > 65 ? 'Best Match' : totalScore > 45 ? 'Good Fit' : 'Consider',
-                        tagColor: totalScore > 65 ? 'text-primary bg-primary/20' : totalScore > 45 ? 'text-accent bg-accent/20' : 'text-muted-foreground bg-secondary',
+                        tag: totalScore > 70 ? 'Strong Buy' : totalScore > 55 ? 'Best Match' : totalScore > 40 ? 'Good Fit' : 'Watch',
+                        tagColor: totalScore > 70 ? 'text-green-400 bg-green-400/20' : totalScore > 55 ? 'text-primary bg-primary/20' : totalScore > 40 ? 'text-accent bg-accent/20' : 'text-muted-foreground bg-secondary',
                       };
                     })
-                    .sort((a, b) => b.score - a.score)
-                    .slice(0, 5);
+                    .sort((a, b) => b.score - a.score);
 
                   return (
-                    <div className="space-y-4">
+                    <div className="space-y-3 max-h-[600px] overflow-y-auto pr-2">
                       {recommendations.map((ipo, index) => (
                         <div
                           key={ipo.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors gap-3"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl bg-secondary/30 hover:bg-secondary/50 cursor-pointer transition-colors gap-2"
                           onClick={() => navigate(`/ipo/${ipo.id}`)}
                         >
-                          <div className="flex items-center gap-4">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${index < 2 ? 'bg-primary text-primary-foreground' : 'bg-secondary text-foreground'}`}>
+                          <div className="flex items-center gap-3">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${index < 3 ? 'bg-primary text-primary-foreground' : index < 7 ? 'bg-accent/30 text-accent' : 'bg-secondary text-foreground'}`}>
                               #{index + 1}
                             </div>
-                            <div>
-                              <p className="font-semibold text-foreground">{ipo.company_name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {ipo.sector} • ₹{ipo.price_band_low}-{ipo.price_band_high} • Lot: {ipo.lot_size}
+                            <div className="min-w-0">
+                              <p className="font-semibold text-foreground text-sm">{ipo.company_name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {ipo.sector} • ₹{ipo.price_band_low}-{ipo.price_band_high} • Lot: {ipo.lot_size} • Sub: {ipo.subscription_rate || 0}x
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                Min investment: {formatCurrency(ipo.lotCost)} • {ipo.affordableLots > 0 ? `You can apply for ${ipo.affordableLots} lot(s)` : 'Stretch budget needed'}
+                                Min: {formatCurrency(ipo.lotCost)} • {ipo.affordableLots > 0 ? `${ipo.affordableLots} lot(s) affordable` : 'Above budget'}
                               </p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3 ml-14 sm:ml-0">
+                          <div className="flex items-center gap-2 ml-11 sm:ml-0 shrink-0">
                             <div className="text-right">
-                              <p className="text-xs text-muted-foreground">Match</p>
-                              <p className="font-bold text-primary">{ipo.score.toFixed(0)}%</p>
+                              <p className="text-xs text-muted-foreground">Score</p>
+                              <p className="font-bold text-primary text-sm">{ipo.score.toFixed(0)}%</p>
                             </div>
-                            <Progress value={ipo.score} className="w-16 h-2" />
-                            <Badge className={`${ipo.tagColor} border-0 whitespace-nowrap`}>
+                            <Progress value={ipo.score} className="w-14 h-2" />
+                            <Badge className={`${ipo.tagColor} border-0 whitespace-nowrap text-xs`}>
                               {ipo.tag}
                             </Badge>
                           </div>
                         </div>
                       ))}
                       <p className="text-xs text-muted-foreground text-center pt-2">
-                        * Recommendations adapt based on your SIP amount (₹{sipMonthly.toLocaleString()}/mo), lumpsum (₹{lumpsum.toLocaleString()}), and expected return ({targetReturn}%)
+                        * Rankings update live based on: Monthly SIP ₹{sipMonthly.toLocaleString()}, Expected Return {targetReturn}%, Time Period {timePeriod}yrs, Lumpsum ₹{lumpsum.toLocaleString()}
                       </p>
                     </div>
                   );
