@@ -16,17 +16,27 @@ export const useStockHistory = (ticker: string, lookbackYears: number = 5) => {
     const sinceStr = since.toISOString().slice(0, 10);
 
     const fetchData = async () => {
-      const table = ticker === "IBEX" ? "market_index_history" : "stock_prices";
-      const query = supabase
-        .from(table)
-        .select("trade_date, close")
-        .gte("trade_date", sinceStr)
-        .order("trade_date", { ascending: true })
-        .limit(2000);
-      const filtered = ticker === "IBEX"
-        ? query.eq("index_symbol", "IBEX")
-        : query.eq("ticker", ticker);
-      const { data: rows, error: err } = await filtered;
+      let rows: any[] | null = null;
+      let err: any = null;
+      if (ticker === "IBEX") {
+        const r = await supabase
+          .from("market_index_history")
+          .select("trade_date, close")
+          .eq("index_symbol", "IBEX")
+          .gte("trade_date", sinceStr)
+          .order("trade_date", { ascending: true })
+          .limit(2000);
+        rows = r.data; err = r.error;
+      } else {
+        const r = await supabase
+          .from("stock_prices")
+          .select("trade_date, close")
+          .eq("ticker", ticker)
+          .gte("trade_date", sinceStr)
+          .order("trade_date", { ascending: true })
+          .limit(2000);
+        rows = r.data; err = r.error;
+      }
       if (!alive) return;
       if (err) { setError(err.message); setData([]); }
       else setData((rows || []).map((r: any) => ({ date: r.trade_date, close: Number(r.close) })));
