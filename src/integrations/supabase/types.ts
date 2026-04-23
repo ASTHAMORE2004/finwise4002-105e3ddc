@@ -117,8 +117,11 @@ export type Database = {
           current_amount: number
           deadline: string | null
           description: string | null
+          expected_cagr: number | null
           icon: string | null
           id: string
+          linked_ticker: string | null
+          monthly_contribution: number | null
           name: string
           status: string
           target_amount: number
@@ -132,8 +135,11 @@ export type Database = {
           current_amount?: number
           deadline?: string | null
           description?: string | null
+          expected_cagr?: number | null
           icon?: string | null
           id?: string
+          linked_ticker?: string | null
+          monthly_contribution?: number | null
           name: string
           status?: string
           target_amount: number
@@ -147,8 +153,11 @@ export type Database = {
           current_amount?: number
           deadline?: string | null
           description?: string | null
+          expected_cagr?: number | null
           icon?: string | null
           id?: string
+          linked_ticker?: string | null
+          monthly_contribution?: number | null
           name?: string
           status?: string
           target_amount?: number
@@ -411,6 +420,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      market_index_history: {
+        Row: {
+          adj_close: number | null
+          close: number
+          created_at: string
+          high: number | null
+          id: number
+          index_symbol: string
+          low: number | null
+          open: number | null
+          trade_date: string
+          volume: number | null
+        }
+        Insert: {
+          adj_close?: number | null
+          close: number
+          created_at?: string
+          high?: number | null
+          id?: number
+          index_symbol?: string
+          low?: number | null
+          open?: number | null
+          trade_date: string
+          volume?: number | null
+        }
+        Update: {
+          adj_close?: number | null
+          close?: number
+          created_at?: string
+          high?: number | null
+          id?: number
+          index_symbol?: string
+          low?: number | null
+          open?: number | null
+          trade_date?: string
+          volume?: number | null
+        }
+        Relationships: []
       }
       market_trends: {
         Row: {
@@ -756,6 +804,45 @@ export type Database = {
           user_id?: string
           valuation?: number | null
           website_url?: string | null
+        }
+        Relationships: []
+      }
+      stock_prices: {
+        Row: {
+          adj_close: number | null
+          close: number
+          created_at: string
+          high: number | null
+          id: number
+          low: number | null
+          open: number | null
+          ticker: string
+          trade_date: string
+          volume: number | null
+        }
+        Insert: {
+          adj_close?: number | null
+          close: number
+          created_at?: string
+          high?: number | null
+          id?: number
+          low?: number | null
+          open?: number | null
+          ticker: string
+          trade_date: string
+          volume?: number | null
+        }
+        Update: {
+          adj_close?: number | null
+          close?: number
+          created_at?: string
+          high?: number | null
+          id?: number
+          low?: number | null
+          open?: number | null
+          ticker?: string
+          trade_date?: string
+          volume?: number | null
         }
         Relationships: []
       }
