@@ -30,6 +30,9 @@ import TrendingAnalytics from "./pages/TrendingAnalytics";
 import KYCVerification from "./pages/KYCVerification";
 import InvestorMeet from "./pages/InvestorMeet";
 import AIHub from "./pages/AIHub";
+import Goals from "./pages/Goals";
+import Feedback from "./pages/Feedback";
+import NotificationSettings from "./pages/NotificationSettings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -62,6 +65,9 @@ const AnimatedRoutes = () => {
         <Route path="/kyc" element={<PageTransition><KYCVerification /></PageTransition>} />
         <Route path="/investor-meet" element={<PageTransition><InvestorMeet /></PageTransition>} />
         <Route path="/ai-hub" element={<PageTransition><AIHub /></PageTransition>} />
+        <Route path="/goals" element={<PageTransition><Goals /></PageTransition>} />
+        <Route path="/feedback" element={<PageTransition><Feedback /></PageTransition>} />
+        <Route path="/notifications" element={<PageTransition><NotificationSettings /></PageTransition>} />
         <Route path="*" element={<PageTransition><NotFound /></PageTransition>} />
       </Routes>
     </AnimatePresence>

@@ -109,6 +109,54 @@ export type Database = {
         }
         Relationships: []
       }
+      financial_goals: {
+        Row: {
+          category: string
+          color: string | null
+          created_at: string
+          current_amount: number
+          deadline: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          name: string
+          status: string
+          target_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category?: string
+          color?: string | null
+          created_at?: string
+          current_amount?: number
+          deadline?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name: string
+          status?: string
+          target_amount: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          color?: string | null
+          created_at?: string
+          current_amount?: number
+          deadline?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          name?: string
+          status?: string
+          target_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       investor_meetings: {
         Row: {
           created_at: string
@@ -406,6 +454,51 @@ export type Database = {
           total_ipos?: number | null
           total_startups?: number | null
           trend_date?: string
+        }
+        Relationships: []
+      }
+      notification_preferences: {
+        Row: {
+          created_at: string
+          delivery_channel: string
+          feedback_responses: boolean
+          goal_reminders: boolean
+          id: string
+          investment_updates: boolean
+          lesson_reminders: boolean
+          marketing_emails: boolean
+          price_alerts: boolean
+          reminder_frequency: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_channel?: string
+          feedback_responses?: boolean
+          goal_reminders?: boolean
+          id?: string
+          investment_updates?: boolean
+          lesson_reminders?: boolean
+          marketing_emails?: boolean
+          price_alerts?: boolean
+          reminder_frequency?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          delivery_channel?: string
+          feedback_responses?: boolean
+          goal_reminders?: boolean
+          id?: string
+          investment_updates?: boolean
+          lesson_reminders?: boolean
+          marketing_emails?: boolean
+          price_alerts?: boolean
+          reminder_frequency?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -713,6 +806,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_feedback: {
+        Row: {
+          admin_response: string | null
+          category: string
+          created_at: string
+          id: string
+          message: string
+          rating: number | null
+          responded_at: string | null
+          status: string
+          subject: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_response?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          message: string
+          rating?: number | null
+          responded_at?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_response?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          message?: string
+          rating?: number | null
+          responded_at?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_portfolio: {
         Row: {
