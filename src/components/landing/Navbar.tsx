@@ -50,6 +50,9 @@ const Navbar = () => {
             <Link to="/startups" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
               {t('nav.startups')}
             </Link>
+            <Link to="/goals" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
+              Goals
+            </Link>
             <Link to="/kyc" className="text-muted-foreground hover:text-foreground transition-colors text-sm font-medium">
               KYC
             </Link>
@@ -106,6 +109,15 @@ const Navbar = () => {
               </Link>
               <Link to="/startups" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
                 {t('nav.startups')}
+              </Link>
+              <Link to="/goals" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
+                Goals
+              </Link>
+              <Link to="/notifications" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
+                Notifications
+              </Link>
+              <Link to="/feedback" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
+                Feedback
               </Link>
               <Link to="/kyc" className="text-muted-foreground hover:text-foreground transition-colors py-2" onClick={() => setIsOpen(false)}>
                 KYC Verification
