@@ -1,17 +1,28 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Menu, X } from "lucide-react";
+import { Menu, X, LogOut, User as UserIcon } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { useTranslation } from "react-i18next";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import logo from "@/assets/logo.png";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { user, signOut } = useAuth();
+  const { toast } = useToast();
+
+  const handleSignOut = async () => {
+    await signOut();
+    toast({ title: "Signed out", description: "You have been logged out successfully." });
+    setIsOpen(false);
+    navigate("/");
+  };
 
   return (
     <motion.nav
@@ -65,12 +76,27 @@ const Navbar = () => {
           <div className="hidden md:flex items-center gap-2">
             <LanguageSwitcher />
             <ThemeToggle />
-            <Button variant="ghost" className="text-muted-foreground" onClick={() => navigate('/auth')}>
-              {t('nav.signIn')}
-            </Button>
-            <Button className="btn-primary-gradient" onClick={() => navigate('/auth')}>
-              {t('hero.getStarted')}
-            </Button>
+            {user ? (
+              <>
+                <Button variant="ghost" className="text-muted-foreground gap-2" onClick={() => navigate('/portfolio')}>
+                  <UserIcon className="w-4 h-4" />
+                  <span className="max-w-[140px] truncate">{user.email}</span>
+                </Button>
+                <Button variant="outline" className="gap-2" onClick={handleSignOut}>
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" className="text-muted-foreground" onClick={() => navigate('/auth')}>
+                  {t('nav.signIn')}
+                </Button>
+                <Button className="btn-primary-gradient" onClick={() => navigate('/auth')}>
+                  {t('hero.getStarted')}
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -123,12 +149,27 @@ const Navbar = () => {
                 KYC Verification
               </Link>
               <div className="flex flex-col gap-2 pt-4 border-t border-border/50">
-                <Button variant="ghost" className="justify-start" onClick={() => { navigate('/auth'); setIsOpen(false); }}>
-                  {t('nav.signIn')}
-                </Button>
-                <Button className="btn-primary-gradient" onClick={() => { navigate('/auth'); setIsOpen(false); }}>
-                  {t('hero.getStarted')}
-                </Button>
+                {user ? (
+                  <>
+                    <div className="flex items-center gap-2 px-2 py-1 text-sm text-muted-foreground">
+                      <UserIcon className="w-4 h-4" />
+                      <span className="truncate">{user.email}</span>
+                    </div>
+                    <Button variant="outline" className="justify-start gap-2" onClick={handleSignOut}>
+                      <LogOut className="w-4 h-4" />
+                      Sign Out
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="ghost" className="justify-start" onClick={() => { navigate('/auth'); setIsOpen(false); }}>
+                      {t('nav.signIn')}
+                    </Button>
+                    <Button className="btn-primary-gradient" onClick={() => { navigate('/auth'); setIsOpen(false); }}>
+                      {t('hero.getStarted')}
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>
