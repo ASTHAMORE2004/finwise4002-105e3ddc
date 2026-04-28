@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Bot, X, Send, Sparkles, Loader2, User, Minimize2 } from "lucide-react";
+import { Bot, X, Send, Sparkles, Loader2, User, Minimize2, Calculator } from "lucide-react";
 import { toast } from "sonner";
+import ReactMarkdown from "react-markdown";
+import { supabase } from "@/integrations/supabase/client";
 
 type Message = {
   role: "user" | "assistant";
@@ -10,122 +12,77 @@ type Message = {
 };
 
 const suggestedQuestions = [
-  "How does round-up investing work?",
-  "Best saving tips for students?",
-  "What is SIP and should I start one?",
-  "How to build credit score early?",
+  "If I invest ₹5,000/month for 10 years at 12%, what will I get?",
+  "How much SIP do I need to save ₹10 lakh in 5 years?",
+  "Explain SIP vs Lumpsum — which is better for me?",
+  "What's a good monthly budget for a college student?",
 ];
+
+const STORAGE_KEY = "kuber_chat_history";
 
 const KuberChatbot = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<Message[]>(() => {
+    try {
+      const stored = sessionStorage.getItem(STORAGE_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    try {
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+    } catch {}
   }, [messages]);
-
-  const streamChat = async (userMessages: Message[]) => {
-    const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kuber-chat`;
-
-    const resp = await fetch(CHAT_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-      },
-      body: JSON.stringify({ messages: userMessages }),
-    });
-
-    if (!resp.ok) {
-      const errorData = await resp.json().catch(() => ({}));
-      if (resp.status === 429) {
-        throw new Error("Rate limited. Please wait a moment and try again.");
-      }
-      if (resp.status === 402) {
-        throw new Error("Service temporarily unavailable.");
-      }
-      throw new Error(errorData.error || "Failed to connect to KUBER");
-    }
-
-    return resp;
-  };
 
   const handleSend = async (messageText?: string) => {
     const text = messageText || input.trim();
     if (!text || isLoading) return;
 
     const userMsg: Message = { role: "user", content: text };
-    setMessages((prev) => [...prev, userMsg]);
+    const nextMessages = [...messages, userMsg];
+    setMessages(nextMessages);
     setInput("");
     setIsLoading(true);
 
-    let assistantContent = "";
-
     try {
-      const response = await streamChat([...messages, userMsg]);
-      
-      if (!response.body) throw new Error("No response body");
+      const { data: { session } } = await supabase.auth.getSession();
+      const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/kuber-chat`;
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ messages: nextMessages }),
+      });
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let textBuffer = "";
-
-      // Add initial assistant message
-      setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        textBuffer += decoder.decode(value, { stream: true });
-
-        let newlineIndex: number;
-        while ((newlineIndex = textBuffer.indexOf("\n")) !== -1) {
-          let line = textBuffer.slice(0, newlineIndex);
-          textBuffer = textBuffer.slice(newlineIndex + 1);
-
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content as string | undefined;
-            if (content) {
-              assistantContent += content;
-              setMessages((prev) => {
-                const newMessages = [...prev];
-                newMessages[newMessages.length - 1] = {
-                  role: "assistant",
-                  content: assistantContent,
-                };
-                return newMessages;
-              });
-            }
-          } catch {
-            textBuffer = line + "\n" + textBuffer;
-            break;
-          }
-        }
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({}));
+        if (resp.status === 429) throw new Error("Too many requests. Please wait a moment.");
+        if (resp.status === 402) throw new Error("AI service temporarily unavailable.");
+        throw new Error(err.error || "Failed to reach KUBER");
       }
+
+      const data = await resp.json();
+      setMessages((prev) => [...prev, { role: "assistant", content: data.content }]);
     } catch (error) {
       console.error("Chat error:", error);
       toast.error(error instanceof Error ? error.message : "Failed to get response");
-      // Remove the empty assistant message if error
-      setMessages((prev) => prev.filter((m) => m.content !== ""));
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const clearChat = () => {
+    setMessages([]);
+    sessionStorage.removeItem(STORAGE_KEY);
   };
 
   return (
@@ -160,7 +117,7 @@ const KuberChatbot = () => {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             transition={{ duration: 0.3 }}
-            className="fixed bottom-6 right-6 z-50 w-[380px] h-[550px] max-w-[calc(100vw-48px)] max-h-[calc(100vh-100px)] flex flex-col glass-card rounded-2xl shadow-elevated overflow-hidden"
+            className="fixed bottom-6 right-6 z-50 w-[420px] h-[620px] max-w-[calc(100vw-32px)] max-h-[calc(100vh-80px)] flex flex-col glass-card rounded-2xl shadow-elevated overflow-hidden"
           >
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border/50 bg-secondary/30">
@@ -172,25 +129,25 @@ const KuberChatbot = () => {
                   <h3 className="font-display font-semibold text-foreground">KUBER</h3>
                   <p className="text-xs text-muted-foreground flex items-center gap-1">
                     <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
-                    AI Investment Guide
+                    AI Advisor • SIP/EMI/Goal calculators
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                {messages.length > 0 && (
+                  <button
+                    onClick={clearChat}
+                    title="Clear chat"
+                    className="p-2 hover:bg-secondary rounded-lg transition-colors text-xs text-muted-foreground"
+                  >
+                    Clear
+                  </button>
+                )}
                 <button
                   onClick={() => setIsOpen(false)}
                   className="p-2 hover:bg-secondary rounded-lg transition-colors"
                 >
                   <Minimize2 className="w-4 h-4 text-muted-foreground" />
-                </button>
-                <button
-                  onClick={() => {
-                    setIsOpen(false);
-                    setMessages([]);
-                  }}
-                  className="p-2 hover:bg-secondary rounded-lg transition-colors"
-                >
-                  <X className="w-4 h-4 text-muted-foreground" />
                 </button>
               </div>
             </div>
@@ -198,17 +155,20 @@ const KuberChatbot = () => {
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.length === 0 ? (
-                <div className="text-center py-8">
+                <div className="text-center py-6">
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
                     <Bot className="w-8 h-8 text-primary" />
                   </div>
                   <h4 className="font-display font-semibold text-foreground mb-2">
                     Hi! I'm KUBER 👋
                   </h4>
-                  <p className="text-sm text-muted-foreground mb-6">
-                    Your personal AI investment guide. Ask me anything about
-                    saving, investing, or managing your finances!
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Your personal AI financial advisor. I can run real SIP, lumpsum, EMI and goal-planning calculations — just ask in plain English.
                   </p>
+                  <div className="flex items-center gap-2 justify-center mb-4 text-xs text-muted-foreground">
+                    <Calculator className="w-3 h-3 text-primary" />
+                    <span>Powered by Gemini + financial tool-calling</span>
+                  </div>
                   <div className="space-y-2">
                     {suggestedQuestions.map((question) => (
                       <button
@@ -243,18 +203,33 @@ const KuberChatbot = () => {
                       )}
                     </div>
                     <div
-                      className={`max-w-[75%] p-3 rounded-2xl text-sm ${
+                      className={`max-w-[80%] p-3 rounded-2xl text-sm ${
                         msg.role === "user"
                           ? "bg-accent text-accent-foreground rounded-br-md"
                           : "bg-secondary text-foreground rounded-bl-md"
                       }`}
                     >
-                      {msg.content || (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                      {msg.role === "assistant" ? (
+                        <div className="prose prose-sm prose-invert max-w-none [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0">
+                          <ReactMarkdown>{msg.content}</ReactMarkdown>
+                        </div>
+                      ) : (
+                        msg.content
                       )}
                     </div>
                   </motion.div>
                 ))
+              )}
+              {isLoading && (
+                <div className="flex gap-3">
+                  <div className="w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center bg-gradient-to-br from-primary to-primary/80">
+                    <Bot className="w-4 h-4 text-primary-foreground" />
+                  </div>
+                  <div className="bg-secondary text-foreground rounded-2xl rounded-bl-md p-3 text-sm flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="text-muted-foreground text-xs">Crunching numbers…</span>
+                  </div>
+                </div>
               )}
               <div ref={messagesEndRef} />
             </div>
@@ -272,7 +247,7 @@ const KuberChatbot = () => {
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder="Ask KUBER anything..."
+                  placeholder="Ask about SIP, goals, EMIs, budgeting..."
                   disabled={isLoading}
                   className="flex-1 bg-secondary/50 border border-border/50 rounded-xl px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
                 />
