@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useStockPrices } from "@/hooks/useStockPrices";
 import { exportPortfolioToPDF } from "@/utils/pdfExport";
 import ReactMarkdown from "react-markdown";
+import DashboardWelcome from "@/components/DashboardWelcome";
 import {
   Wallet,
   TrendingUp,
@@ -328,6 +329,9 @@ const Portfolio = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="container mx-auto px-4 pt-24 pb-12">
+        {/* Personalized welcome */}
+        <DashboardWelcome hasInvestments={portfolio.length > 0} />
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
